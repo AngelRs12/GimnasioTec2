@@ -1,7 +1,101 @@
 {% extends 'gym/base.html' %}
-{% load static %}
-{% block title %}Inicio | Gimnasio{% endblock %}
+{% load static bootstrap5 %}
+
+{% block title %}Registrar entrada/salida{% endblock %}
 
 {% block content %}
-<h1>Teeest<h1>
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow">
+        <div class="card-header bg-dark text-white text-center">
+          <h4 class="mb-0">Registrar Entrada / Salida</h4>
+        </div>
+        <div class="card-body">
+          <form method="POST" id="registro-form">
+            {% csrf_token %}
+            
+            <!-- Selección de tipo de registro -->
+            <div class="mb-3">
+              <label for="tipo" class="form-label">Tipo de registro</label>
+              <select name="tipo" id="tipo" class="form-select" required>
+                <option value="" selected disabled>Seleccione una opción</option>
+                <option value="entrada">Entrada</option>
+                <option value="salida">Salida</option>
+              </select>
+            </div>
+
+            <!-- Opción 1: ID -->
+            <div class="mb-3">
+              <label for="id_registro" class="form-label">ID</label>
+              <input type="number" class="form-control" id="id_registro" name="id_registro" placeholder="Ingrese ID del usuario">
+            </div>
+
+            <!-- Opción 2: No. de control -->
+            <div class="mb-3">
+              <label for="no_control" class="form-label">Número de control</label>
+              <input type="text" class="form-control" id="no_control" name="no_control" placeholder="Ingrese número de control">
+            </div>
+
+            <!-- Opción 3: Nombre con sugerencias -->
+            <div class="mb-3 position-relative">
+              <label for="nombre" class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Escriba el nombre" autocomplete="off">
+              <div id="sugerencias" class="list-group position-absolute w-100 shadow" style="z-index: 10; display: none;"></div>
+            </div>
+
+            <!-- Botón enviar -->
+            <div class="text-center">
+              <button type="submit" class="btn btn-dark w-100">Registrar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Script para sugerencias -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const inputNombre = document.getElementById("nombre");
+  const sugerencias = document.getElementById("sugerencias");
+
+  inputNombre.addEventListener("input", async () => {
+    const query = inputNombre.value.trim();
+    if (query.length < 2) {
+      sugerencias.style.display = "none";
+      return;
+    }
+
+    // Fetch a la vista que devuelve sugerencias en JSON
+    const response = await fetch(`/buscar_usuarios/?q=${query}`);
+    const data = await response.json();
+
+    sugerencias.innerHTML = "";
+    if (data.length > 0) {
+      data.forEach(nombre => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "list-group-item list-group-item-action";
+        item.textContent = nombre;
+        item.addEventListener("click", () => {
+          inputNombre.value = nombre;
+          sugerencias.style.display = "none";
+        });
+        sugerencias.appendChild(item);
+      });
+      sugerencias.style.display = "block";
+    } else {
+      sugerencias.style.display = "none";
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!sugerencias.contains(e.target) && e.target !== inputNombre) {
+      sugerencias.style.display = "none";
+    }
+  });
+});
+</script>
 {% endblock %}
