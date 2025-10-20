@@ -1,0 +1,64 @@
+{% extends 'gym/base.html' %}
+{% load static %}
+{% block title %}Inicio | Gimnasio{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row g-3">
+     <!-- Fila 2 -->
+    <div class="col-md-12">
+        <div class="card text-center shadow-sm h-100">
+        <a href="{% url 'entradas_salidas' %}" class="nav-link">
+          <div class="card-body py-5">
+             <img src="{% static 'gym/images/entradas.png' %}"   alt="Registrar acceso">
+            <h4 class="fw-bold text-success">Entradas y Salidas</h4>
+          </div>
+        </div>
+      </a>
+    </div>
+    <!-- Fila 1 -->
+     
+    <div class="col-md-6">
+        <div class="card text-center shadow-sm h-100">
+          <a href="{% url 'usuarios' %}" class="nav-link">
+          <div class="card-body py-5">
+             <img src="{% static 'gym/images/users.png' %}"   alt="Membresias">
+            <h4 class="fw-bold text-primary">Gestión de usuarios</h4>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+        <div class="card text-center shadow-sm h-100">
+          <a href="{% url 'membresias' %}" class="nav-link">
+          <div class="card-body py-5">
+             <img src="{% static 'gym/images/membresia.png' %}"   alt="Membresias">
+            <h4 class="fw-bold text-primary">Gestión de membresías</h4>
+          </div>
+        </div>
+      </a>
+    </div>
+    <!-- Fila 3 -->
+    <div class="col-md-6">
+        <div class="card text-center shadow-sm h-100">
+          <a href="{% url 'reportes' %}" class="nav-link">
+          <div class="card-body py-5">            
+             <img src="{% static 'gym/images/reports.png' %}"   alt="Membresias">
+            <h4 class="fw-bold text-danger">Reporte de uso del gimnasio</h4>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+        <div class="card text-center shadow-sm h-100">
+          <a href="{% url 'observaciones' %}" class="nav-link">
+          <div class="card-body py-5">
+             <img src="{% static 'gym/images/observation.png' %}"   alt="Membresias">
+            <h4 class="fw-bold text-warning">Observaciones</h4>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

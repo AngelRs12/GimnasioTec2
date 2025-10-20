@@ -1,0 +1,31 @@
+{% load static bootstrap5 %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Mi Gimnasio{% endblock %}</title>
+
+  {% bootstrap_css %}
+  <link rel="stylesheet" href="{% static 'styles/general.css' %}">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+  <div class="d-flex flex-column justify-content-between min-vh-100">
+    <!-- Header -->
+    {% include 'gym/includes/header.html' %}
+
+    <!-- Contenido -->
+    <main class="container my-4 flex-grow-1">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% include 'gym/includes/footer.html' %}
+  </div>
+
+  {% bootstrap_javascript %}
+</body>
+</html>
+
