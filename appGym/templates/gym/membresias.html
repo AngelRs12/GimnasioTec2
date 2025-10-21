@@ -1,7 +1,123 @@
 {% extends 'gym/base.html' %}
-{% load static %}
-{% block title %}Inicio | Gimnasio{% endblock %}
+{% load static bootstrap5 %}
+
+{% block title %}Gestión de Membresías{% endblock %}
 
 {% block content %}
-<h1>Teeest<h1>
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+      <div class="card shadow">
+        <div class="card-header bg-dark text-white text-center">
+          <h4 class="mb-0">Gestión de Membresías</h4>
+        </div>
+        <div class="card-body">
+          <!-- Formulario de membresía -->
+          <form method="POST" id="membresia-form">
+            {% csrf_token %}
+            
+            <!-- Tipo de acción -->
+            <div class="mb-3">
+              <label for="accion" class="form-label">Acción</label>
+              <select name="accion" id="accion" class="form-select" required>
+                <option value="" selected disabled>Seleccione una acción</option>
+                <option value="contratar">Contratar membresía</option>
+                <option value="editar">Editar membresía</option>
+                <option value="cancelar">Cancelar membresía</option>
+                <option value="buscar">Buscar usuarios con membresía</option>
+              </select>
+            </div>
+
+            <!-- No. Membresía -->
+            <div class="mb-3">
+              <label for="no_membresia" class="form-label">No. de Membresía</label>
+              <input type="number" class="form-control" id="no_membresia" name="no_membresia" placeholder="Ingrese número de membresía">
+            </div>
+
+            <!-- Usuario relacionado -->
+            <div class="mb-3 position-relative">
+              <label for="usuario" class="form-label">Usuario</label>
+              <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Escriba el nombre del usuario" autocomplete="off">
+              <div id="sugerencias" class="list-group position-absolute w-100 shadow" style="z-index: 10; display: none;"></div>
+            </div>
+
+            <!-- ID Usuario -->
+            <div class="mb-3">
+              <label for="id_usuario" class="form-label">ID Usuario</label>
+              <input type="number" class="form-control" id="id_usuario" name="id_usuario" placeholder="Ingrese ID del usuario">
+            </div>
+
+            <!-- Fecha inicial -->
+            <div class="mb-3">
+              <label for="fecha_inicial" class="form-label">Fecha Inicial</label>
+              <input type="date" class="form-control" id="fecha_inicial" name="fecha_inicial">
+            </div>
+
+            <!-- Fecha final -->
+            <div class="mb-3">
+              <label for="fecha_final" class="form-label">Fecha Final</label>
+              <input type="date" class="form-control" id="fecha_final" name="fecha_final">
+            </div>
+
+            <!-- Costo fijo -->
+            <div class="mb-3">
+              <label for="costo" class="form-label">Costo de membresía</label>
+              <input type="text" class="form-control" id="costo" name="costo" value="$200.00" readonly>
+            </div>
+
+            <!-- Botón principal -->
+            <div class="text-center">
+              <button type="submit" class="btn btn-dark w-100">Ejecutar Acción</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Script para sugerencias de usuario -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const inputUsuario = document.getElementById("usuario");
+  const sugerencias = document.getElementById("sugerencias");
+
+  inputUsuario.addEventListener("input", async () => {
+    const query = inputUsuario.value.trim();
+    if (query.length < 2) {
+      sugerencias.style.display = "none";
+      return;
+    }
+
+    // Solicita coincidencias al backend
+    const response = await fetch(`/buscar_usuarios/?q=${query}`);
+    const data = await response.json();
+
+    sugerencias.innerHTML = "";
+    if (data.length > 0) {
+      data.forEach(usuario => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "list-group-item list-group-item-action";
+        item.textContent = `${usuario.nombre} ${usuario.apellido_paterno} ${usuario.apellido_materno}`;
+        item.addEventListener("click", () => {
+          inputUsuario.value = `${usuario.nombre} ${usuario.apellido_paterno}`;
+          document.getElementById("id_usuario").value = usuario.id;
+          sugerencias.style.display = "none";
+        });
+        sugerencias.appendChild(item);
+      });
+      sugerencias.style.display = "block";
+    } else {
+      sugerencias.style.display = "none";
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!sugerencias.contains(e.target) && e.target !== inputUsuario) {
+      sugerencias.style.display = "none";
+    }
+  });
+});
+</script>
 {% endblock %}

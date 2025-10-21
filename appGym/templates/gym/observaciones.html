@@ -1,7 +1,104 @@
 {% extends 'gym/base.html' %}
-{% load static %}
-{% block title %}Inicio | Gimnasio{% endblock %}
+{% load static bootstrap5 %}
+
+{% block title %}Gestión de Observaciones{% endblock %}
 
 {% block content %}
-<h1>Teeest<h1>
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+      <div class="card shadow">
+        <div class="card-header bg-dark text-white text-center">
+          <h4 class="mb-0">Gestión de Observaciones / Noticias</h4>
+        </div>
+        <div class="card-body">
+          <!-- Formulario de Observaciones -->
+          <form method="POST" id="observacion-form">
+            {% csrf_token %}
+            
+            <!-- Tipo de acción -->
+            <div class="mb-3">
+              <label for="accion" class="form-label">Acción</label>
+              <select name="accion" id="accion" class="form-select" required>
+                <option value="" selected disabled>Seleccione una acción</option>
+                <option value="agregar">Agregar observación</option>
+                <option value="editar">Editar observación</option>
+                <option value="eliminar">Eliminar observación</option>
+                <option value="buscar">Buscar observación</option>
+              </select>
+            </div>
+
+            <!-- ID -->
+            <div class="mb-3">
+              <label for="id_observacion" class="form-label">ID Observación</label>
+              <input type="number" class="form-control" id="id_observacion" name="id_observacion" placeholder="Ingrese ID de la observación">
+            </div>
+
+            <!-- Título -->
+            <div class="mb-3">
+              <label for="titulo" class="form-label">Título</label>
+              <input type="text" class="form-control" id="titulo" name="titulo" placeholder="Ingrese título de la noticia u observación" required>
+            </div>
+
+            <!-- Descripción -->
+            <div class="mb-3">
+              <label for="descripcion" class="form-label">Descripción</label>
+              <textarea class="form-control" id="descripcion" name="descripcion" rows="4" placeholder="Escriba la descripción o el contenido del anuncio" required></textarea>
+            </div>
+
+            <!-- Fecha de publicación -->
+            <div class="mb-3">
+              <label for="fecha_publicacion" class="form-label">Fecha de Publicación</label>
+              <input type="date" class="form-control" id="fecha_publicacion" name="fecha_publicacion">
+            </div>
+
+            <!-- Botón principal -->
+            <div class="text-center">
+              <button type="submit" class="btn btn-dark w-100">Ejecutar Acción</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Sección de noticias publicadas -->
+      <div class="card mt-4 shadow">
+        <div class="card-header bg-secondary text-white text-center">
+          <h5 class="mb-0">Noticias / Observaciones Recientes</h5>
+        </div>
+        <div class="card-body" id="lista-observaciones">
+          <p class="text-center text-muted">No hay observaciones disponibles.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Script para cargar noticias -->
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const lista = document.getElementById("lista-observaciones");
+
+  // Cargar observaciones desde el backend
+  try {
+    const response = await fetch("/listar_observaciones/");
+    const data = await response.json();
+
+    if (data.length > 0) {
+      lista.innerHTML = "";
+      data.forEach(obs => {
+        const card = document.createElement("div");
+        card.className = "border rounded p-3 mb-3";
+        card.innerHTML = `
+          <h6 class="fw-bold">${obs.titulo}</h6>
+          <p class="mb-1">${obs.descripcion}</p>
+          <small class="text-muted">Publicado el: ${obs.fecha_publicacion}</small>
+        `;
+        lista.appendChild(card);
+      });
+    }
+  } catch (error) {
+    console.error("Error al cargar observaciones:", error);
+  }
+});
+</script>
 {% endblock %}
