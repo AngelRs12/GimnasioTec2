@@ -1,20 +1,66 @@
 {% load static %}
 {% load bootstrap5 %}
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-      <!-- Logo -->
-      <img src="{% static 'gym/images/logo.png' %}" 
-           alt="Logo Gimnasio" 
-           width="40" height="40" 
-            class="me-2 rounded-circle">
-      <!-- Texto -->
-      <span class="text-white fs-4 fw-bold">Sistema de Control del Gimnasio del ITCJ</span>
+<style>
+  /* Estilos para la barra lateral */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 220px;
+    background-color: #212529;
+    color: white;
+    padding-top: 70px;
+    transition: transform 0.3s ease;
+    transform: translateX(-100%);
+    z-index: 1050;
+  }
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu">
-      <span class="navbar-toggler-icon"></span>
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .sidebar a {
+    display: block;
+    color: white;
+    padding: 12px 20px;
+    text-decoration: none;
+  }
+
+  .sidebar a:hover {
+    background-color: #343a40;
+  }
+
+  /* Botón de la barra lateral */
+  .sidebar-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+</style>
+
+<!-- Navbar con botón de barra lateral -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <!-- Botón para abrir/cerrar barra -->
+    <button id="sidebarToggle" class="sidebar-toggle">
+      ☰
     </button>
 
+    <!-- Logo -->
+    <img src="{% static 'gym/images/logo.png' %}"
+         alt="Logo Gimnasio"
+         width="40" height="40"
+         class="me-2 rounded-circle">
+
+    <!-- Texto -->
+    <span class="text-white fs-5 fw-bold">Sistema de Control del Gimnasio del ITCJ</span>
+
+    <!-- Menú normal (oculto en pantallas pequeñas) -->
     <div class="collapse navbar-collapse" id="menu">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a href="{% url 'index' %}" class="nav-link">Inicio</a></li>
@@ -27,3 +73,22 @@
     </div>
   </div>
 </nav>
+
+<!-- Barra lateral oculta -->
+<div id="sidebar" class="sidebar">
+  <a href="{% url 'index' %}">🏠 Inicio</a>
+  <a href="{% url 'entradas_salidas' %}">🚪 Entradas y Salidas</a>
+  <a href="{% url 'usuarios' %}">👥 Usuarios</a>
+  <a href="{% url 'membresias' %}">💳 Membresías</a>
+  <a href="{% url 'reportes' %}">📊 Reportes</a>
+  <a href="{% url 'observaciones' %}">🗒️ Observaciones</a>
+</div>
+
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const toggleButton = document.getElementById('sidebarToggle');
+
+  toggleButton.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+  });
+</script>
