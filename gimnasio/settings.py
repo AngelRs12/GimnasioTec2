@@ -76,9 +76,13 @@ WSGI_APPLICATION = 'gimnasio.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'gimnasio',          # Nombre de tu base de datos
+        'USER': 'postgres',        # Usuario de PostgreSQL
+        'PASSWORD': '12345',      # Contraseña del usuario
+        'HOST': 'localhost',      # O la IP del servidor
+        'PORT': '5432',           # Puerto por defecto de PostgreSQL
+}
 }
 
 

@@ -1,6 +1,7 @@
 {% load static %}
 {% load bootstrap5 %}
-
+<link rel="stylesheet" href="{% static 'styles/header.css' %}">
+<link rel="stylesheet" href="{% static 'styles/footer.css' %}">
 <style>
   /* Estilos para la barra lateral */
   .sidebar {
@@ -11,21 +12,53 @@
     width: 220px;
     background-color: #212529;
     color: white;
-    padding-top: 70px;
     transition: transform 0.3s ease;
     transform: translateX(-100%);
     z-index: 1050;
+    display: flex;
+    flex-direction: column;
   }
 
   .sidebar.active {
     transform: translateX(0);
   }
 
+  /* Encabezado del menú */
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background-color: #1a1e21;
+    border-bottom: 1px solid #343a40;
+  }
+
+  .sidebar-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  /* Botón para cerrar */
+  .close-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 26px;
+    cursor: pointer;
+  }
+
+  .close-btn:hover {
+    color: #adb5bd;
+  }
+
+  /* Enlaces */
   .sidebar a {
     display: block;
     color: white;
     padding: 12px 20px;
     text-decoration: none;
+    transition: background-color 0.2s;
   }
 
   .sidebar a:hover {
@@ -44,7 +77,16 @@
 </style>
 
 <!-- Navbar con botón de barra lateral -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+ <div class="py-3 head-logos">
+  <div class="d-flex justify-content-center align-items-center flex-wrap gap-5">
+    <img src="{% static 'gym/images/ITCJ logo.png' %}" height="60">
+    <img src="{% static 'gym/images/logo sep.png' %}" height="60">
+    <img src="{% static 'gym/images/LOGO TECNM.png' %}" alt="img 4" height="60">
+
+  </div>
+</div>
+
+<nav class="navbar navbar-expand-lg navbar-dark fondo">
   <div class="container-fluid">
     <!-- Botón para abrir/cerrar barra -->
     <button id="sidebarToggle" class="sidebar-toggle">
@@ -60,7 +102,7 @@
     <!-- Texto -->
     <span class="text-white fs-5 fw-bold">Sistema de Control del Gimnasio del ITCJ</span>
 
-    <!-- Menú normal (oculto en pantallas pequeñas) -->
+    <!-- Menú normal -->
     <div class="collapse navbar-collapse" id="menu">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a href="{% url 'index' %}" class="nav-link">Inicio</a></li>
@@ -74,8 +116,15 @@
   </div>
 </nav>
 
-<!-- Barra lateral oculta -->
+<!-- Barra lateral -->
 <div id="sidebar" class="sidebar">
+  <!-- Encabezado con título y botón -->
+  <div class="sidebar-header">
+    <span class="sidebar-title">Menú</span>
+    <button id="closeSidebar" class="close-btn">&times;</button>
+  </div>
+
+  <!-- Enlaces del menú -->
   <a href="{% url 'index' %}">🏠 Inicio</a>
   <a href="{% url 'entradas_salidas' %}">🚪 Entradas y Salidas</a>
   <a href="{% url 'usuarios' %}">👥 Usuarios</a>
@@ -87,8 +136,13 @@
 <script>
   const sidebar = document.getElementById('sidebar');
   const toggleButton = document.getElementById('sidebarToggle');
+  const closeButton = document.getElementById('closeSidebar');
 
   toggleButton.addEventListener('click', () => {
     sidebar.classList.toggle('active');
+  });
+
+  closeButton.addEventListener('click', () => {
+    sidebar.classList.remove('active');
   });
 </script>
