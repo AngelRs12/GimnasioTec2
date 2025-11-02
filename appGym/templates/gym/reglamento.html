@@ -1,0 +1,53 @@
+{% extends 'gym/base.html' %}
+{% load static %}
+{% block title %}Reglamento del Gimnasio{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg border-0 rounded-3">
+    <div class="card-header bg-dark text-white text-center">
+      <h3 class="mb-0">Reglamento del Gimnasio del ITCJ</h3>
+    </div>
+    <div class="card-body p-4">
+      <p class="text-muted fst-italic mb-4">
+      </p>
+
+      <ul class="list-group list-group-flush fs-5">
+        <li class="list-group-item">
+          🕒 <strong>Horario:</strong> El gimnasio estará abierto de lunes a viernes de 6:00 a 22:00 horas y sábados de 8:00 a 14:00 horas.
+        </li>
+        <li class="list-group-item">
+          🧍‍♂️ <strong>Acceso:</strong> Solo podrán ingresar los usuarios con membresía vigente o autorización temporal del personal administrativo.
+        </li>
+        <li class="list-group-item">
+          🧼 <strong>Higiene:</strong> Es obligatorio utilizar toalla personal y limpiar el equipo después de cada uso.
+        </li>
+        <li class="list-group-item">
+          🎧 <strong>Conducta:</strong> Se debe mantener un comportamiento respetuoso con los demás usuarios y el personal del gimnasio.
+        </li>
+        <li class="list-group-item">
+          👟 <strong>Vestimenta:</strong> Usar ropa deportiva adecuada y calzado limpio de suela no marcada.
+        </li>
+        <li class="list-group-item">
+          🏋️‍♀️ <strong>Uso de equipo:</strong> Cuidar y devolver el material o pesas a su lugar al terminar su rutina.
+        </li>
+        <li class="list-group-item">
+          🚫 <strong>Prohibiciones:</strong> No se permite fumar, consumir bebidas alcohólicas o ingresar alimentos dentro del gimnasio.
+        </li>
+        <li class="list-group-item">
+          📱 <strong>Dispositivos:</strong> Evitar distracciones con teléfonos celulares durante los entrenamientos.
+        </li>
+        <li class="list-group-item">
+          ❤️ <strong>Salud:</strong> Informar al instructor o personal en caso de sentir malestar físico durante el ejercicio.
+        </li>
+      </ul>
+
+      <div class="mt-4 text-end">
+        <a href="{% url 'index' %}" class="btn btn-secondary">
+          ⬅️ Volver al inicio
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

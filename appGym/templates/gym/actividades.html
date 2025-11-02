@@ -1,0 +1,56 @@
+{% extends 'gym/base.html' %}
+{% block title %}Actividades del Gimnasio{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg">
+    <div class="card-header bg-dark text-white text-center">
+      <h3>Actividades del Gimnasio del ITCJ</h3>
+    </div>
+    <div class="card-body">
+      <p class="fs-5 text-center mb-4">
+        Nuestro gimnasio ofrece una amplia variedad de actividades para todos los niveles y horarios.
+        Aquí puedes consultar las principales clases y entrenamientos disponibles.
+      </p>
+
+      <div class="row text-center">
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title fw-bold">💪 Musculación</h5>
+              <p class="card-text">Entrenamiento con pesas y máquinas para el desarrollo de fuerza y masa muscular.</p>
+              <p><strong>Horario:</strong> Lunes a Viernes — 7:00 AM a 9:00 PM</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title fw-bold">🏃‍♀️ Cardio</h5>
+              <p class="card-text">Área equipada con caminadoras, bicicletas y elípticas para mejorar tu resistencia.</p>
+              <p><strong>Horario:</strong> Lunes a Sábado — 7:00 AM a 8:00 PM</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title fw-bold">🧘‍♂️ Clases Grupales</h5>
+              <p class="card-text">Sesiones de yoga, zumba, spinning y entrenamiento funcional con instructores.</p>
+              <p><strong>Horario:</strong> Consultar horarios semanales</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="{% url 'horario' %}" class="btn btn-outline-dark">
+          Ver horarios detallados
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

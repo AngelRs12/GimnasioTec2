@@ -24,6 +24,21 @@ def membresias(request):
 def observaciones(request):
     return render(request, 'gym/observaciones.html')
 
+def reglamento(request):
+    return render(request, 'gym/reglamento.html')
+
+def horario(request):
+    return render(request, 'gym/horario.html')
+
+def entrenadores(request):
+    return render(request, 'gym/entrenadores.html')
+
+def actividades(request):
+    return render(request, 'gym/actividades.html')
+
+def acercade(request):
+    return render(request, 'gym/acercade.html')
+
 def gestion_usuarios(request):
     if request.method == "POST":
         accion = request.POST.get("accion")

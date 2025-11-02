@@ -1,0 +1,66 @@
+{% extends 'gym/base.html' %}
+{% load static %}
+{% block title %}Acerca del Gimnasio | ITCJ{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg">
+    <div class="card-header bg-dark text-white text-center">
+      <h3>Acerca del Gimnasio del ITCJ</h3>
+    </div>
+    <div class="card-body">
+      <div class="text-center mb-4">
+        <img src="{% static 'gym/images/logo.png' %}" alt="Logo Gimnasio" class="rounded-circle shadow" width="120" height="120">
+        <h4 class="mt-3 fw-bold">“Supera tus límites, alcanza tus metas”</h4>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="card-title text-primary fw-bold">🏋️ Historia</h5>
+              <p>El gimnasio del Instituto Tecnológico de Ciudad Juárez fue creado con el propósito de fomentar la actividad física, el bienestar y la salud entre la comunidad estudiantil, docente y administrativa. A lo largo de los años se ha convertido en un espacio de crecimiento personal y deportivo.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="card-title text-success fw-bold">🎯 Misión</h5>
+              <p>Promover un estilo de vida saludable mediante la práctica constante del ejercicio, la disciplina y la superación personal, brindando un ambiente seguro y motivador para todos los usuarios del gimnasio.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="card-title text-danger fw-bold">🌟 Visión</h5>
+              <p>Ser un referente dentro de los gimnasios institucionales a nivel nacional, reconocido por su compromiso con el bienestar físico y mental de la comunidad tecnológica.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="card-title text-warning fw-bold">🏆 Objetivos</h5>
+              <ul>
+                <li>Fomentar hábitos saludables en la comunidad del ITCJ.</li>
+                <li>Proporcionar asesorías y rutinas personalizadas a los usuarios.</li>
+                <li>Organizar eventos deportivos y de convivencia.</li>
+                <li>Contribuir al desarrollo integral de los estudiantes.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="{% url 'index' %}" class="btn btn-outline-dark">Volver al inicio</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
