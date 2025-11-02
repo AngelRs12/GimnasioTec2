@@ -13,7 +13,7 @@
         </div>
         <div class="card-body">
           <!-- Formulario de gestión -->
-          <form method="POST" id="usuario-form">
+          <form method="POST" id="usuario-form" action="{% url 'gestion_usuarios' %}">
             {% csrf_token %}
             
             <!-- Tipo de acción -->
@@ -58,12 +58,12 @@
               <label for="tipo_usuario" class="form-label">Tipo de usuario</label>
               <select name="tipo_usuario" id="tipo_usuario" class="form-select" required>
                 <option value="" selected disabled>Seleccione tipo</option>
-                <option value="Alumno">Alumno</option>
-                <option value="Representativo">Representativo</option>
-                <option value="Externo">Externo</option>
+                <option value="alumno">Alumno</option>
+                <option value="representativo">Representativo</option>
+                <option value="externo">Externo</option>
               </select>
             </div>
-
+            <div id="campos-extra"></div>
             <!-- Botón principal -->
             <div class="text-center">
               <button type="submit" class="btn btn-dark w-100">Ejecutar Acción</button>
@@ -78,44 +78,35 @@
 <!-- Script para sugerencias de búsqueda -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const inputNombre = document.getElementById("nombre");
-  const sugerencias = document.getElementById("sugerencias");
+  const tipoUsuario = document.getElementById("tipo_usuario");
+  const camposExtra = document.getElementById("campos-extra");
 
-  inputNombre.addEventListener("input", async () => {
-    const query = inputNombre.value.trim();
-    if (query.length < 2) {
-      sugerencias.style.display = "none";
-      return;
-    }
+  tipoUsuario.addEventListener("change", () => {
+    const tipo = tipoUsuario.value.toLowerCase();
+    camposExtra.innerHTML = ""; // limpia campos previos
 
-    const response = await fetch(`/buscar_usuarios/?q=${query}`);
-    const data = await response.json();
-
-    sugerencias.innerHTML = "";
-    if (data.length > 0) {
-      data.forEach(usuario => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "list-group-item list-group-item-action";
-        item.textContent = `${usuario.nombre} ${usuario.apellido_paterno} ${usuario.apellido_materno}`;
-        item.addEventListener("click", () => {
-          inputNombre.value = usuario.nombre;
-          document.getElementById("apellido_paterno").value = usuario.apellido_paterno;
-          document.getElementById("apellido_materno").value = usuario.apellido_materno;
-          document.getElementById("id_usuario").value = usuario.id;
-          sugerencias.style.display = "none";
-        });
-        sugerencias.appendChild(item);
-      });
-      sugerencias.style.display = "block";
+    if (tipo === "alumno") {
+      camposExtra.innerHTML = `
+        <div class="mb-3">
+          <label for="no_control" class="form-label">Número de Control</label>
+          <input type="text" class="form-control" id="no_control" name="no_control" required>
+        </div>
+        <div class="mb-3">
+          <label for="correo" class="form-label">Correo</label>
+          <input type="email" class="form-control" id="correo" name="correo" required>
+        </div>`;
+    } else if (tipo === "representativo") {
+      camposExtra.innerHTML = `
+        <div class="mb-3">
+          <label for="no_control" class="form-label">Número de Control</label>
+          <input type="text" class="form-control" id="no_control" name="no_control" required>
+        </div>
+        <div class="mb-3">
+          <label for="equipo" class="form-label">Equipo</label>
+          <input type="text" class="form-control" id="equipo" name="equipo" required>
+        </div>`;
     } else {
-      sugerencias.style.display = "none";
-    }
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!sugerencias.contains(e.target) && e.target !== inputNombre) {
-      sugerencias.style.display = "none";
+      // Externo: no necesita campos extra
     }
   });
 });
