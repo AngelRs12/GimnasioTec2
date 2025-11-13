@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict PqdgZUyvhDPvcvx3G2fg99OanoIRrGTzJsfmkS6j9wLzaztEYRWDymAs6HkxpGP
+\restrict gFJe0y1MscpxWXIjvMXE3SMYINOMU7GddL4PeqU1E6wVWgahqRlHWM1MfHhOHpk
 
 -- Dumped from database version 18.0
 -- Dumped by pg_dump version 18.0
@@ -23,7 +23,7 @@ SET row_security = off;
 -- Name: buscar_usuario(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.buscar_usuario(p_id text DEFAULT NULL::text, p_nombre text DEFAULT NULL::text) RETURNS TABLE(id_usuario integer, nombres text, apellido_paterno text, apellido_materno text, tipo_usuario text, no_control integer, correo text, equipo text)
+CREATE FUNCTION public.buscar_usuario(p_id text DEFAULT NULL::text, p_nombre text DEFAULT NULL::text) RETURNS TABLE(id_usuario integer, nombres text, apellido_paterno text, apellido_materno text, tipo_usuario text, no_control integer, equipo text)
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -45,7 +45,6 @@ BEGIN
             ELSE 'desconocido'
         END::TEXT AS tipo_usuario,
         COALESCE(a.no_control, r.no_control, NULL)::INT AS no_control,
-        a.correo::TEXT,
         r.equipo::TEXT
     FROM usuario u
     LEFT JOIN alumno a ON a.id_usuario = u.id_usuario
@@ -66,60 +65,63 @@ $$;
 ALTER FUNCTION public.buscar_usuario(p_id text, p_nombre text) OWNER TO postgres;
 
 --
--- Name: insertar_usuario_general(text, text, text, text, integer, text, text); Type: PROCEDURE; Schema: public; Owner: postgres
+-- Name: insertar_usuario_general(text, text, text, text, integer, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE PROCEDURE public.insertar_usuario_general(IN p_nombres text, IN p_apellido_paterno text, IN p_apellido_materno text, IN p_tipo_usuario text, IN p_no_control integer, IN p_correo text DEFAULT NULL::text, IN p_equipo text DEFAULT NULL::text)
+CREATE FUNCTION public.insertar_usuario_general(p_nombres text, p_apellido_paterno text, p_apellido_materno text, p_tipo_usuario text, p_no_control integer, p_equipo text DEFAULT NULL::text) RETURNS integer
     LANGUAGE plpgsql
     AS $$
 DECLARE
     v_id_usuario INT;
     v_existe INT;
 BEGIN
-    -- Validar tipo de usuario
+    -- 🔹 Validar tipo de usuario
     IF p_tipo_usuario NOT IN ('alumno', 'externo', 'representativo') THEN
         RAISE EXCEPTION 'Tipo de usuario inválido: %. Debe ser alumno, externo o representativo.', p_tipo_usuario;
     END IF;
 
-    -- Insertar en tabla general (usuario)
+    -- 🔹 Insertar en tabla general (usuario)
     INSERT INTO public.usuario (nombres, apellido_paterno, apellido_materno)
     VALUES (p_nombres, p_apellido_paterno, p_apellido_materno)
     RETURNING id_usuario INTO v_id_usuario;
 
-    -- Según el tipo de usuario
+    -- 🔹 Si es ALUMNO
     IF p_tipo_usuario = 'alumno' THEN
-        -- Validar número de control
-        SELECT COUNT(*) INTO v_existe 
-        FROM public.alumno 
-        WHERE no_control = p_no_control;
-
+        SELECT COUNT(*) INTO v_existe FROM public.alumno WHERE no_control = p_no_control;
         IF v_existe > 0 THEN
             RAISE EXCEPTION 'El número de control % ya existe en alumno.', p_no_control;
         END IF;
 
-        -- Insertar en alumno
-        INSERT INTO public.alumno (no_control, correo, id_usuario)
-        VALUES (p_no_control, p_correo, v_id_usuario);
+        INSERT INTO public.alumno (no_control, id_usuario)
+        VALUES (p_no_control, v_id_usuario);
 
+    -- 🔹 Si es EXTERNO
     ELSIF p_tipo_usuario = 'externo' THEN
-        -- Insertar en externo
         INSERT INTO public.externo (id_usuario)
         VALUES (v_id_usuario);
 
+    -- 🔹 Si es REPRESENTATIVO
     ELSIF p_tipo_usuario = 'representativo' THEN
-        -- Validar número de control
-        SELECT COUNT(*) INTO v_existe 
-        FROM public.representativos 
-        WHERE no_control = p_no_control;
-
+        -- Validar duplicado
+        SELECT COUNT(*) INTO v_existe FROM public.representativos WHERE no_control = p_no_control;
         IF v_existe > 0 THEN
             RAISE EXCEPTION 'El número de control % ya existe en representativos.', p_no_control;
         END IF;
 
+        -- Insertar también en alumno (si no existe)
+        SELECT COUNT(*) INTO v_existe FROM public.alumno WHERE no_control = p_no_control;
+        IF v_existe = 0 THEN
+            INSERT INTO public.alumno (no_control, id_usuario)
+            VALUES (p_no_control, v_id_usuario);
+        END IF;
+
         -- Insertar en representativos
-        INSERT INTO public.representativos (no_control, equipo)
-        VALUES (p_no_control, p_equipo);
+        INSERT INTO public.representativos (no_control, equipo, id_usuario)
+        VALUES (p_no_control, p_equipo, v_id_usuario);
     END IF;
+
+    -- 🔹 Devolver el id del usuario recién creado
+    RETURN v_id_usuario;
 
 EXCEPTION
     WHEN OTHERS THEN
@@ -128,7 +130,7 @@ END;
 $$;
 
 
-ALTER PROCEDURE public.insertar_usuario_general(IN p_nombres text, IN p_apellido_paterno text, IN p_apellido_materno text, IN p_tipo_usuario text, IN p_no_control integer, IN p_correo text, IN p_equipo text) OWNER TO postgres;
+ALTER FUNCTION public.insertar_usuario_general(p_nombres text, p_apellido_paterno text, p_apellido_materno text, p_tipo_usuario text, p_no_control integer, p_equipo text) OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -140,7 +142,6 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.alumno (
     no_control integer NOT NULL,
-    correo character varying(100) NOT NULL,
     id_usuario integer NOT NULL
 );
 
@@ -707,10 +708,12 @@ ALTER TABLE ONLY public.usuario ALTER COLUMN id_usuario SET DEFAULT nextval('pub
 -- Data for Name: alumno; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.alumno (no_control, correo, id_usuario) FROM stdin;
-20112197	test@test	2
-20112198	testxd@ee	11
-20112199	testxd@ee1	22
+COPY public.alumno (no_control, id_usuario) FROM stdin;
+20112197	2
+20112198	11
+20112199	22
+12345678	33
+20112190	34
 \.
 
 
@@ -880,6 +883,9 @@ COPY public.observaciones (id_observacion, fecha_observacion, descripcion, id_us
 --
 
 COPY public.representativos (id_representativo, no_control, equipo, id_usuario) FROM stdin;
+3	20112197	Futbol	\N
+8	20112198	leibres	31
+9	20112190	rere	34
 \.
 
 
@@ -892,6 +898,10 @@ COPY public.usuario (id_usuario, nombres, apellido_paterno, apellido_materno) FR
 11	Angel	test	test
 22	asda	teetrt	tertre
 23	asda	teetrt	dfs
+26	we	teetrt	dfs
+31	TEST12	t	dfs
+33	ds	dfsdfs	tertre
+34	fsfd	fsddfs	fsddfs
 \.
 
 
@@ -997,22 +1007,14 @@ SELECT pg_catalog.setval('public.observaciones_id_observacion_seq', 1, false);
 -- Name: representativos_id_representativo_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.representativos_id_representativo_seq', 1, false);
+SELECT pg_catalog.setval('public.representativos_id_representativo_seq', 9, true);
 
 
 --
 -- Name: usuario_id_usuario_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 23, true);
-
-
---
--- Name: alumno alumno_correo_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.alumno
-    ADD CONSTRAINT alumno_correo_key UNIQUE (correo);
+SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 34, true);
 
 
 --
@@ -1438,5 +1440,5 @@ ALTER TABLE ONLY public.representativos
 -- PostgreSQL database dump complete
 --
 
-\unrestrict PqdgZUyvhDPvcvx3G2fg99OanoIRrGTzJsfmkS6j9wLzaztEYRWDymAs6HkxpGP
+\unrestrict gFJe0y1MscpxWXIjvMXE3SMYINOMU7GddL4PeqU1E6wVWgahqRlHWM1MfHhOHpk
 

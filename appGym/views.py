@@ -45,42 +45,55 @@ def gestion_usuarios(request):
         nombre = request.POST.get("nombre")
         apellido_paterno = request.POST.get("apellido_paterno")
         apellido_materno = request.POST.get("apellido_materno")
-        correo = request.POST.get("correo")  # si aplica
         no_control = request.POST.get("no_control")  # si aplica
+        equipo = request.POST.get("equipo")  # si aplica (solo representativo)
 
         if accion == "agregar":
             try:
                 with connection.cursor() as cursor:
                     cursor.execute("""
-                        CALL insertar_usuario_general(%s, %s, %s, %s, %s, %s)
+                        SELECT insertar_usuario_general(%s, %s, %s, %s, %s, %s)
                     """, [
                         nombre,
                         apellido_paterno,
                         apellido_materno,
                         tipo_usuario,
                         no_control,
-                        correo
+                        equipo  # nuevo parámetro
                     ])
-                print("SP ejecutado correctamente")
 
-                # Si es una petición AJAX, devolver JSON
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return JsonResponse({"success": True})
+                    # Recuperar el id del usuario recién insertado
+                    nuevo_id = cursor.fetchone()[0]
 
-                # Si no es AJAX, render normal
-                return render(request, 'gym/usuarios.html', {"mensaje": "Usuario agregado correctamente."})
+                    # Si es una petición AJAX, devolver JSON
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({
+                            "success": True,
+                            "mensaje": "Usuario agregado correctamente.",
+                            "id_usuario": nuevo_id
+                        })
+
+                    # Si no es AJAX, render normal
+                    return render(
+                        request,
+                        "gym/usuarios.html",
+                        {"mensaje": f"Usuario agregado correctamente (ID: {nuevo_id})."}
+                    )
 
             except Exception as e:
                 error_msg = str(e)
-    # Si viene con "CONTEXT:", cortamos desde ahí
-                if "CONTEXT:" in error_msg:
-                    error_msg = error_msg.split("CONTEXT:")[0].strip()
 
+        # Si viene con "CONTEXT:", cortamos desde ahí
+        if "CONTEXT:" in error_msg:
+            error_msg = error_msg.split("CONTEXT:")[0].strip()
 
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return JsonResponse({"success": False, "error": error_msg}, status=400)
+        # Respuesta AJAX
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": error_msg}, status=400)
 
-                return render(request, 'gym/usuarios.html', {"error": error_msg})
+        # Respuesta normal
+        return render(request, "gym/usuarios.html", {"error": error_msg})
+    
  # === BUSCAR USUARIO === (AJAX con fetch)
     elif request.method == "GET" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         id_usuario = request.GET.get("id_usuario", "").strip()
