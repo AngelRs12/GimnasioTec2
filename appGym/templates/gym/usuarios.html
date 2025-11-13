@@ -4,111 +4,298 @@
 {% block title %}Gestión de Usuarios{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
-      <div class="card shadow">
-        <div class="card-header bg-dark text-white text-center">
+      <div class="card shadow-lg border-0">
+        <div class="card-header fondo text-white text-center">
           <h4 class="mb-0">Gestión de Usuarios</h4>
         </div>
+
         <div class="card-body">
-          <!-- Formulario de gestión -->
-          <form method="POST" id="usuario-form" action="{% url 'gestion_usuarios' %}">
-            {% csrf_token %}
-            
-            <!-- Tipo de acción -->
-            <div class="mb-3">
-              <label for="accion" class="form-label">Acción</label>
-              <select name="accion" id="accion" class="form-select" required>
-                <option value="" selected disabled>Seleccione una acción</option>
-                <option value="agregar">Agregar usuario</option>
-                <option value="editar">Editar usuario</option>
-                <option value="eliminar">Eliminar usuario</option>
-                <option value="buscar">Buscar usuario</option>
-              </select>
-            </div>
+          <!-- Menú principal -->
+          <div class="d-flex justify-content-around mb-4">
+            <button class="btn btn-success" id="btn-agregar">Agregar</button>
+            <button class="btn btn-primary" id="btn-buscar">Buscar</button>
+            <button class="btn btn-warning text-white" id="btn-editar">Editar</button>
+            <button class="btn btn-danger" id="btn-eliminar">Eliminar</button>
+          </div>
 
-            <!-- ID -->
-            <div class="mb-3">
-              <label for="id_usuario" class="form-label">ID Usuario</label>
-              <input type="number" class="form-control" id="id_usuario" name="id_usuario" placeholder="Ingrese ID del usuario">
-            </div>
+          <!-- SECCIÓN AGREGAR -->
+          <div id="seccion-agregar" class="d-none">
+            <h5 class="mb-3 text-success">Agregar Usuario</h5>
+            <div id="alerta-mensaje"></div>
 
-            <!-- Nombre -->
-            <div class="mb-3 position-relative">
-              <label for="nombre" class="form-label">Nombre</label>
-              <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ingrese nombre" autocomplete="off">
-              <div id="sugerencias" class="list-group position-absolute w-100 shadow" style="z-index: 10; display: none;"></div>
-            </div>
+            <form method="POST" enctype="multipart/form-data" id="form-agregar" action="{% url 'gestion_usuarios' %}">
+              {% csrf_token %}
+              <input type="hidden" name="accion" value="agregar" />
 
-            <!-- Apellido Paterno -->
-            <div class="mb-3">
-              <label for="apellido_paterno" class="form-label">Apellido Paterno</label>
-              <input type="text" class="form-control" id="apellido_paterno" name="apellido_paterno" placeholder="Ingrese apellido paterno">
-            </div>
+              <!-- Datos -->
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="nombre" class="form-label">Nombre</label>
+                  <input type="text" class="form-control" id="nombre" name="nombre" required />
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="apellido_paterno" class="form-label">Apellido Paterno</label>
+                  <input type="text" class="form-control" id="apellido_paterno" name="apellido_paterno" required />
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="apellido_materno" class="form-label">Apellido Materno</label>
+                  <input type="text" class="form-control" id="apellido_materno" name="apellido_materno" required />
+                </div>
+              </div>
 
-            <!-- Apellido Materno -->
-            <div class="mb-3">
-              <label for="apellido_materno" class="form-label">Apellido Materno</label>
-              <input type="text" class="form-control" id="apellido_materno" name="apellido_materno" placeholder="Ingrese apellido materno">
-            </div>
+              <!-- Tipo -->
+              <div class="mb-3">
+                <label for="tipo_usuario" class="form-label">Tipo de Usuario</label>
+                <select class="form-select" id="tipo_usuario" name="tipo_usuario" required>
+                  <option value="">Seleccione tipo</option>
+                  <option value="alumno">Alumno</option>
+                  <option value="representativo">Representativo</option>
+                  <option value="externo">Externo</option>
+                </select>
+              </div>
 
-            <!-- Tipo de usuario -->
-            <div class="mb-3">
-              <label for="tipo_usuario" class="form-label">Tipo de usuario</label>
-              <select name="tipo_usuario" id="tipo_usuario" class="form-select" required>
-                <option value="" selected disabled>Seleccione tipo</option>
-                <option value="alumno">Alumno</option>
-                <option value="representativo">Representativo</option>
-                <option value="externo">Externo</option>
-              </select>
+              <!-- Campos dinámicos -->
+              <div id="campos-extra"></div>
+
+              <!-- Foto -->
+              <div class="mb-3">
+                <label for="foto" class="form-label">Foto (opcional)</label>
+                <input type="file" class="form-control" id="foto" name="foto" accept="image/*" />
+              </div>
+
+              <div class="text-center">
+                <button type="submit" class="btn btn-success w-100">Guardar Usuario</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- SECCIÓN BUSCAR / EDITAR / ELIMINAR -->
+          <div id="seccion-buscar">
+            <h5 class="mb-3 text-primary" id="titulo-busqueda">Buscar Usuario</h5>
+
+            <form id="form-buscar" method="GET" action="{% url 'gestion_usuarios' %}">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <input type="number" class="form-control" id="buscar_id" name="id_usuario" placeholder="Buscar por ID" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <input type="text" class="form-control" id="buscar_nombre" name="nombre" placeholder="Buscar por nombre" />
+                </div>
+              </div>
+              <div class="text-center">
+                <button type="submit" class="btn btn-primary w-100">Buscar</button>
+              </div>
+            </form>
+
+            <ul id="resultados" class="list-group mt-4" style="display:none;"></ul>
+
+            <!-- Detalle usuario -->
+            <div id="detalle-usuario" class="mt-4 d-none">
+              <div class="card">
+                <div class="card-body d-flex align-items-center">
+                  <img id="detalle-foto" src="" alt="Foto" class="rounded me-3 border"
+                    style="width:80px; height:80px; object-fit:cover;">
+                  <div>
+                    <h6 id="detalle-nombre" class="mb-1"></h6>
+                    <p id="detalle-id" class="text-muted mb-1"></p>
+                    <p id="detalle-tipo" class="text-muted mb-0"></p>
+                  </div>
+                </div>
+
+                <!-- Formulario de edición -->
+                <div id="form-editar" class="card-body border-top d-none">
+                  <form method="POST" action="{% url 'gestion_usuarios' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="editar">
+                    <input type="hidden" name="id_usuario" id="id_editar">
+
+                    <div class="mb-3">
+                      <label class="form-label">Nuevo nombre</label>
+                      <input type="text" class="form-control" name="nuevo_nombre" id="editar_nombre" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Nuevo correo</label>
+                      <input type="email" class="form-control" name="nuevo_correo" id="editar_correo">
+                    </div>
+
+                    <button type="submit" class="btn btn-warning text-white w-100">Guardar Cambios</button>
+                  </form>
+                </div>
+
+                <!-- Botón eliminar -->
+                <div id="boton-eliminar" class="card-footer text-center d-none">
+                  <form method="POST" id="form-eliminar" action="{% url 'gestion_usuarios' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="eliminar" />
+                    <input type="hidden" name="id_usuario" id="id_eliminar" />
+                    <button type="submit" class="btn btn-danger w-100">Eliminar Usuario</button>
+                  </form>
+                </div>
+              </div>
             </div>
-            <div id="campos-extra"></div>
-            <!-- Botón principal -->
-            <div class="text-center">
-              <button type="submit" class="btn btn-dark w-100">Ejecutar Acción</button>
-            </div>
-          </form>
-        </div>
+          </div><!-- /seccion buscar -->
+        </div><!-- /card-body -->
       </div>
     </div>
   </div>
 </div>
 
-<!-- Script para sugerencias de búsqueda -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const tipoUsuario = document.getElementById("tipo_usuario");
-  const camposExtra = document.getElementById("campos-extra");
+  const seccionAgregar = document.getElementById("seccion-agregar");
+  const seccionBuscar = document.getElementById("seccion-buscar");
+  const detalleUsuario = document.getElementById("detalle-usuario");
+  const resultados = document.getElementById("resultados");
+  const botonEliminar = document.getElementById("boton-eliminar");
+  const formEditar = document.getElementById("form-editar");
+  const tituloBusqueda = document.getElementById("titulo-busqueda");
 
-  tipoUsuario.addEventListener("change", () => {
-    const tipo = tipoUsuario.value.toLowerCase();
-    camposExtra.innerHTML = ""; // limpia campos previos
+  const btnAgregar = document.getElementById("btn-agregar");
+  const btnBuscar = document.getElementById("btn-buscar");
+  const btnEditar = document.getElementById("btn-editar");
+  const btnEliminar = document.getElementById("btn-eliminar");
 
-    if (tipo === "alumno") {
-      camposExtra.innerHTML = `
-        <div class="mb-3">
-          <label for="no_control" class="form-label">Número de Control</label>
-          <input type="text" class="form-control" id="no_control" name="no_control" required>
-        </div>
-        <div class="mb-3">
-          <label for="correo" class="form-label">Correo</label>
-          <input type="email" class="form-control" id="correo" name="correo" required>
-        </div>`;
-    } else if (tipo === "representativo") {
-      camposExtra.innerHTML = `
-        <div class="mb-3">
-          <label for="no_control" class="form-label">Número de Control</label>
-          <input type="text" class="form-control" id="no_control" name="no_control" required>
-        </div>
-        <div class="mb-3">
-          <label for="equipo" class="form-label">Equipo</label>
-          <input type="text" class="form-control" id="equipo" name="equipo" required>
-        </div>`;
-    } else {
-      // Externo: no necesita campos extra
+  const formAgregar = document.getElementById("form-agregar");
+  const alerta = document.getElementById("alerta-mensaje");
+
+  const formBuscar = document.getElementById("form-buscar");
+
+  function mostrarSeccion(seccion) {
+    [seccionAgregar, seccionBuscar].forEach((s) => s.classList.add("d-none"));
+    seccion.classList.remove("d-none");
+    detalleUsuario.classList.add("d-none");
+    resultados.style.display = "none";
+  }
+
+  // Mostrar Buscar por defecto
+  mostrarSeccion(seccionBuscar);
+
+  btnAgregar.addEventListener("click", () => mostrarSeccion(seccionAgregar));
+  btnBuscar.addEventListener("click", () => {
+    tituloBusqueda.textContent = "Buscar Usuario";
+    mostrarSeccion(seccionBuscar);
+    botonEliminar.classList.add("d-none");
+    formEditar.classList.add("d-none");
+  });
+  btnEliminar.addEventListener("click", () => {
+    tituloBusqueda.textContent = "Eliminar Usuario";
+    mostrarSeccion(seccionBuscar);
+    botonEliminar.classList.remove("d-none");
+    formEditar.classList.add("d-none");
+  });
+  btnEditar.addEventListener("click", () => {
+    tituloBusqueda.textContent = "Editar Usuario";
+    mostrarSeccion(seccionBuscar);
+    botonEliminar.classList.add("d-none");
+    formEditar.classList.remove("d-none");
+  });
+
+  // Simulación de búsqueda (como tu versión)
+document.getElementById("form-buscar").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const queryNombre = document.getElementById("buscar_nombre").value.trim();
+  const queryId = document.getElementById("buscar_id").value.trim();
+
+  resultados.innerHTML = "";
+  resultados.style.display = "block";
+  detalleUsuario.classList.add("d-none");
+
+  if (!queryNombre && !queryId) {
+    resultados.innerHTML = `
+      <li class="list-group-item text-center text-danger">
+        ⚠️ Debes ingresar un ID o un Nombre para buscar.
+      </li>`;
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${formBuscar.action}?id_usuario=${queryId}&nombre=${queryNombre}`,
+      { headers: { "X-Requested-With": "XMLHttpRequest" } }
+    );
+
+    const data = await response.json();
+
+    if (!data.success) {
+      resultados.innerHTML = `
+        <li class="list-group-item text-center text-danger">
+          ❌ ${data.error}
+        </li>`;
+      return;
+    }
+
+    if (data.resultados.length === 0) {
+      resultados.innerHTML = `
+        <li class="list-group-item text-center text-muted">
+          Sin resultados
+        </li>`;
+      return;
+    }
+
+    // Mostrar coincidencias
+    data.resultados.forEach((u) => {
+      const li = document.createElement("li");
+      li.className = "list-group-item list-group-item-action";
+      li.textContent = `ID: ${u.id_usuario} - ${u.nombres} ${u.apellido_paterno} (${u.tipo_usuario})`;
+      li.onclick = () => {
+        detalleUsuario.classList.remove("d-none");
+        document.getElementById("detalle-nombre").textContent =
+          `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
+        document.getElementById("detalle-id").textContent =
+          "ID: " + u.id_usuario;
+        document.getElementById("detalle-tipo").textContent =
+          "Tipo: " + u.tipo_usuario;
+        document.getElementById("detalle-foto").src =
+          u.foto || "https://via.placeholder.com/80";
+        document.getElementById("id_eliminar").value = u.id_usuario;
+      };
+      resultados.appendChild(li);
+    });
+  } catch (error) {
+    console.error(error);
+    resultados.innerHTML = `
+      <li class="list-group-item text-center text-danger">
+        ⚠️ Error al conectar con el servidor.
+      </li>`;
+  }
+});
+
+  // Alertas
+  function mostrarMensaje(tipo, mensaje) {
+    alerta.innerHTML = `
+      <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>`;
+  }
+
+  // Agregar usuario
+  formAgregar.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(formAgregar);
+    try {
+      const response = await fetch(formAgregar.action, {
+        method: "POST",
+        body: formData,
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        mostrarMensaje("success", "Usuario agregado correctamente.");
+        formAgregar.reset();
+        document.getElementById("campos-extra").innerHTML = "";
+      } else {
+        mostrarMensaje("danger", data.error || "Error al agregar usuario.");
+      }
+    } catch {
+      mostrarMensaje("danger", "Error inesperado en el servidor.");
     }
   });
 });
 </script>
+
 {% endblock %}
