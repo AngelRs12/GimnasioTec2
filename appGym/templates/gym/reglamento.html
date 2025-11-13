@@ -3,58 +3,168 @@
 {% block title %}Reglamento del Gimnasio{% endblock %}
 
 {% block content %}
+<style>
+  :root {
+    --azul-itcj: hsl(219, 57%, 24%);
+    --azul-itcj-light: hsl(219, 57%, 34%);
+    --accent: hsl(210, 90%, 56%);
+  }
+
+  /* Tarjeta principal */
+  .reglamento-card {
+    border: 0;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  /* Encabezado */
+  .reglamento-header {
+    background: linear-gradient(135deg, var(--azul-itcj), var(--azul-itcj-light));
+    color: #fff;
+    padding: 1.25rem;
+  }
+
+  .reglamento-subtitle {
+    color: #eef2ff;
+    opacity: 0.95;
+  }
+
+  /* Cuerpo y texto general */
+  .reglamento-grid .card {
+    border-radius: 10px;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    transform: translateY(0);
+    font-size: 1.1rem; /* texto más grande */
+    line-height: 1.6;
+  }
+
+  .reglamento-grid .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px rgba(25, 40, 80, 0.12);
+  }
+
+  /* Títulos de sección */
+  .section-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--azul-itcj);
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Listas */
+  .reglamento-list li {
+    margin-bottom: 0.6rem;
+  }
+
+  /* Card de disposición final */
+  .disposicion-card {
+    margin: 0 auto;
+    max-width: 920px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fff, #fbfdff);
+    font-size: 1.15rem;
+  }
+
+  /* Botón volver */
+  .btn-back {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: white;
+    border: 0;
+    font-size: 1rem;
+    padding: 0.6rem 1.2rem;
+  }
+</style>
+
 <div class="container mt-5">
-  <div class="card shadow-lg border-0 rounded-3">
-    <div class="card-header bg-dark text-white text-center">
+  <div class="card reglamento-card shadow-lg">
+    <div class="card-header reglamento-header text-center">
       <h3 class="mb-0">Reglamento del Gimnasio del ITCJ</h3>
+      <p class="mt-2 reglamento-subtitle">Normas y disposiciones para el uso responsable y seguro de las instalaciones.</p>
     </div>
+
     <div class="card-body p-4">
-      <p class="text-muted fst-italic mb-4">
-        A continuación se presenta el reglamento general para el uso adecuado de las instalaciones del gimnasio del Instituto Tecnológico de Ciudad Juárez.
-      </p>
-
-      <div class="fs-5">
-        <p><strong>Código de vestimenta y accesorios:</strong></p>
-        <ul>
-          <li>Pantalonera o short deportivo.</li>
-          <li>Tennis.</li>
-          <li>Playera deportiva.</li>
-          <li>Toalla para limpieza de aparatos y uso personal.</li>
-        </ul>
-
-        <p class="mt-4"><strong>Uso de instalaciones y equipo:</strong></p>
-        <ul>
-          <li>Aforo máximo permitido: 20 personas.</li>
-          <li>Presentar credencial para el acceso; los datos serán registrados en una bitácora.</li>
-          <li>Realizar limpieza del equipo y material al terminar la rutina de ejercicio (se proporcionará desinfectante).</li>
-          <li>El tiempo máximo para uso de las instalaciones es de una hora con treinta minutos, con el fin de propiciar la rotación y dar espacio a otros usuarios.</li>
-          <li>Guardar discos, mancuernas y seguros al terminar de utilizarlos.</li>
-          <li>Cuidar el material, equipo e instalaciones. En caso de sufrir algún daño, reportarlo con los encargados.</li>
-        </ul>
-
-        <p class="mt-4"><strong>Reglamento de convivencia y comportamiento general:</strong></p>
-        <ul>
-          <li>Respetar las indicaciones del personal encargado del área de pesas.</li>
-          <li>Prohibido consumir alimentos y/o fumar.</li>
-          <li>Prohibida la introducción o ingesta de bebidas embriagantes.</li>
-          <li>No se permite la introducción de envases de vidrio; solo se permiten termos o botellas de plástico.</li>
-          <li>Cuidar el vocabulario y evitar el comportamiento agresivo o inadecuado entre usuarios.</li>
-          <li>No se permitirá el acceso con mochilas, maletas o bolsas.</li>
-          <li>No correr, empujar o practicar juegos violentos que pongan en riesgo la seguridad de los usuarios.</li>
-          <li>Cuidar en todo momento sus pertenencias; el gimnasio no se hace responsable por pérdidas.</li>
-          <li>En caso de inconveniente, se restringirá el acceso al usuario y se informará a las autoridades correspondientes.</li>
-        </ul>
-
-        <p class="mt-4"><strong>Disposición final:</strong></p>
-        Lo no previsto en este reglamento será resuelto por el Departamento de Actividades Extraescolares.
+      <div class="text-center mb-4">
+        <h4 class="mt-2 fw-bold">Lea atentamente las siguientes reglas</h4>
+        <p class="text-muted fs-5">El cumplimiento de estas normas garantiza un ambiente ordenado, seguro y respetuoso para todos los usuarios.</p>
       </div>
 
-      <div class="mt-4 text-end">
-        <a href="{% url 'index' %}" class="btn btn-secondary">
-          ⬅️ Volver al inicio
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
+      <!-- Cuadrícula 3x2 -->
+      <div class="row g-4 reglamento-grid">
+
+        <!-- Card 1 -->
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+              <h5 class="section-title">Código de vestimenta y accesorios</h5>
+              <p class="text-muted">Los usuarios deberán portar ropa y accesorios deportivos adecuados para garantizar higiene y seguridad durante su uso del gimnasio.</p>
+              <ul class="reglamento-list">
+                <li>Pantalonera o short deportivo.</li>
+                <li>Tennis deportivos.</li>
+                <li>Playera deportiva.</li>
+                <li>Toalla para limpieza de aparatos y uso personal.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+              <h5 class="section-title">Uso de instalaciones y equipo</h5>
+              <p class="text-muted">El uso de las áreas y equipos está sujeto a normas destinadas a garantizar el acceso equitativo y el cuidado de los recursos.</p>
+              <ul class="reglamento-list">
+                <li>El aforo máximo permitido es de 20 personas.</li>
+                <li>Es obligatorio presentar credencial para el acceso; los datos serán registrados en una bitácora.</li>
+                <li>Realizar la limpieza del equipo y material al terminar la rutina; el gimnasio proporcionará desinfectante.</li>
+                <li>El tiempo máximo para uso por persona es de una hora con treinta minutos.</li>
+                <li>Guardar discos, mancuernas y seguros al finalizar su uso.</li>
+                <li>Reportar cualquier daño o desperfecto al personal encargado.</li>
+                <li>Se priorizará el uso de equipos para grupos representativos cuando corresponda.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+              <h5 class="section-title">Reglamento de convivencia y comportamiento</h5>
+              <p class="text-muted">Para mantener un ambiente seguro y respetuoso, los usuarios deberán seguir las siguientes indicaciones.</p>
+              <ul class="reglamento-list">
+                <li>Respetar las indicaciones del personal encargado del gimnasio.</li>
+                <li>Queda prohibido consumir alimentos y fumar dentro de las instalaciones.</li>
+                <li>No se permite la introducción ni ingesta de bebidas embriagantes.</li>
+                <li>No introducir envases de vidrio; solo termos o botellas de plástico.</li>
+                <li>Mantener un lenguaje y conducta adecuados; evitar actitudes agresivas.</li>
+                <li>No se permitirá el acceso con mochilas, maletas o bolsas que obstaculicen el paso.</li>
+                <li>Evitar correr, empujar o prácticas violentas que pongan en riesgo a otros usuarios.</li>
+                <li>Cuidar las pertenencias personales; el gimnasio no se hace responsable por pérdidas.</li>
+                <li>Se podrá restringir el acceso a quien incumpla las normas.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Disposición final -->
+        <div class="col-12">
+          <div class="card disposicion-card border-0 shadow-sm mt-2">
+            <div class="card-body text-center">
+              <h5 class="fw-bold text-dark mb-3">Disposición final</h5>
+              <p class="text-muted mb-2">Cualquier situación no prevista en este reglamento será resuelta por el Departamento de Actividades Extraescolares.</p>
+              <p class="text-muted">El cumplimiento de estas normas contribuye a un ambiente seguro, ordenado y respetuoso para todos los usuarios del gimnasio.</p>
+              <div class="mt-3">
+                <a href="{% url 'index' %}" class="btn btn-back">Volver al inicio</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- row -->
+    </div> <!-- card-body -->
+  </div> <!-- card -->
+</div> <!-- container -->
 {% endblock %}

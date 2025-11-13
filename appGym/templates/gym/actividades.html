@@ -1,55 +1,128 @@
 {% extends 'gym/base.html' %}
+{% load static %}
 {% block title %}Actividades del Gimnasio{% endblock %}
 
 {% block content %}
+<style>
+  :root {
+    --azul-itcj: hsl(219, 57%, 24%);
+    --azul-itcj-light: hsl(219, 57%, 34%);
+    --accent: hsl(210, 90%, 56%);
+  }
+
+  .actividad-card {
+    border: 0;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .actividad-header {
+    background: linear-gradient(135deg, var(--azul-itcj), var(--azul-itcj-light));
+    color: #fff;
+    padding: 1.25rem;
+  }
+
+  .actividad-subtitle {
+    color: #eef2ff;
+    opacity: 0.95;
+  }
+
+  .actividad-grid .card {
+    border-radius: 10px;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    transform: translateY(0);
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+
+  .actividad-grid .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px rgba(25, 40, 80, 0.12);
+  }
+
+  .section-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--azul-itcj);
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+  }
+
+  .actividad-list li {
+    margin-bottom: 0.6rem;
+  }
+
+  .btn-back {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: white;
+    border: 0;
+    font-size: 1rem;
+    padding: 0.6rem 1.2rem;
+  }
+</style>
+
 <div class="container mt-5">
-  <div class="card shadow-lg">
-    <div class="card-header bg-dark text-white text-center">
-      <h3>Actividades del Gimnasio del ITCJ</h3>
+  <div class="card actividad-card shadow-lg">
+    <div class="card-header actividad-header text-center">
+      <h3 class="mb-0">Actividades del Gimnasio del ITCJ</h3>
+      <p class="mt-2 actividad-subtitle">Explora las principales actividades disponibles para todos los niveles y horarios.</p>
     </div>
-    <div class="card-body">
-      <p class="fs-5 text-center mb-4">
-        Nuestro gimnasio ofrece una amplia variedad de actividades para todos los niveles y horarios.
-        Aquí puedes consultar las principales clases y entrenamientos disponibles.
-      </p>
 
-      <div class="row text-center">
-        <div class="col-md-4 mb-4">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title fw-bold">💪 Musculación</h5>
-              <p class="card-text">Entrenamiento con pesas y máquinas para el desarrollo de fuerza y masa muscular.</p>
-              <p><strong>Horario:</strong> Lunes a Viernes — 7:00 AM a 9:00 PM</p>
+    <div class="card-body p-4">
+      <div class="text-center mb-4">
+        <h4 class="mt-2 fw-bold">Entrena, mejora y diviértete</h4>
+        <p class="text-muted fs-5">El gimnasio ofrece distintas áreas y clases diseñadas para fortalecer cuerpo y mente.</p>
+      </div>
+
+      <!-- Cuadrícula 3 columnas -->
+      <div class="row g-4 actividad-grid">
+
+        <!-- Musculación -->
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body text-center">
+              <h5 class="section-title">💪 Musculación</h5>
+              <p class="text-muted">Entrenamiento con pesas, máquinas y rutinas personalizadas para mejorar fuerza y masa muscular.</p>
+              <ul class="actividad-list list-unstyled">
+                <li><strong>Horario:</strong> Lunes a Viernes — 7:00 AM a 9:00 PM</li>
+              </ul>
             </div>
           </div>
         </div>
 
-        <div class="col-md-4 mb-4">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title fw-bold">🏃‍♀️ Cardio</h5>
-              <p class="card-text">Área equipada con caminadoras, bicicletas y elípticas para mejorar tu resistencia.</p>
-              <p><strong>Horario:</strong> Lunes a Sábado — 7:00 AM a 8:00 PM</p>
+        <!-- Cardio -->
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body text-center">
+              <h5 class="section-title">🏃‍♀️ Cardio</h5>
+              <p class="text-muted">Área equipada con caminadoras, bicicletas y elípticas para mejorar tu resistencia y salud cardiovascular.</p>
+              <ul class="actividad-list list-unstyled">
+                <li><strong>Horario:</strong> Lunes a Sábado — 7:00 AM a 8:00 PM</li>
+              </ul>
             </div>
           </div>
         </div>
 
-        <div class="col-md-4 mb-4">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title fw-bold">🧘‍♂️ Clases Grupales</h5>
-              <p class="card-text">Sesiones de yoga, zumba, spinning y entrenamiento funcional con instructores.</p>
-              <p><strong>Horario:</strong> Consultar horarios semanales</p>
+        <!-- Clases Grupales -->
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body text-center">
+              <h5 class="section-title">🧘‍♂️ Clases Grupales</h5>
+              <p class="text-muted">Participa en sesiones de yoga, zumba, spinning y entrenamiento funcional guiadas por instructores certificados.</p>
+              <ul class="actividad-list list-unstyled">
+                <li><strong>Horario:</strong> Consultar horarios semanales</li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Botón volver -->
       <div class="text-center mt-4">
-        <a href="{% url 'horario' %}" class="btn btn-outline-dark">
-          Ver horarios detallados
-        </a>
+        <a href="{% url 'index' %}" class="btn btn-back">Volver al inicio</a>
       </div>
+
     </div>
   </div>
 </div>
