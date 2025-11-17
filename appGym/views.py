@@ -243,3 +243,16 @@ def eliminar_observacion_view(request):
             return JsonResponse({"success": False, "error": str(e)})
 
     return JsonResponse({"success": False, "error": "Método no permitido"})
+
+def eliminar_usuario(request):
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        id_usuario = request.POST.get("id_usuario")
+        if not id_usuario:
+            return JsonResponse({"success": False, "error": "ID de usuario no proporcionado."})
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT public.eliminar_usuario(%s);", [int(id_usuario)])
+            return JsonResponse({"success": True, "mensaje": f"Usuario {id_usuario} eliminado correctamente."})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    return JsonResponse({"success": False, "error": "Método no permitido."})

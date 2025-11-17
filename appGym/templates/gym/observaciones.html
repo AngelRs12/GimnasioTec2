@@ -52,6 +52,7 @@
         </div>
 
         <div class="card-body">
+          <div id="alert-editar-container" class="mb-3"></div>
           <div class="accordion" id="accordionObservaciones">
             <p class="text-center text-muted">Cargando observaciones...</p>
           </div>
@@ -62,7 +63,24 @@
   </div>
 </div>
 
-
+<!-- Modal de Confirmación de Eliminación -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        ¿Está seguro que desea eliminar esta observación?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmDelete">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- SCRIPT PARA LISTAR OBSERVACIONES -->
 <script>
   function getCookie(name) {
@@ -175,74 +193,103 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // === FUNCIONES DE BOTONES EDITAR Y ELIMINAR ===
-  function agregarEventosBotones() {
-    document.querySelectorAll(".btn-guardar").forEach(btn => {
-      btn.addEventListener("click", async (e) => {
-        const parent = e.target.closest(".accordion-item");
-        const id = parent.dataset.id;
-        const descripcion = parent.querySelector(".editable-descripcion").value;
+ function agregarEventosBotones() {
+  const alertEditarContainer = document.getElementById("alert-editar-container");
 
-        try {
-          const formData = new FormData();
-          formData.append("id_observacion", id);
-          formData.append("descripcion", descripcion);
+  document.querySelectorAll(".btn-guardar").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const parent = e.target.closest(".accordion-item");
+      const id = parent.dataset.id;
+      const descripcion = parent.querySelector(".editable-descripcion").value;
 
-          const response = await fetch("/editar_observacion/", {
-            method: "POST",
-            body: formData,
-            headers: {
+      try {
+        const formData = new FormData();
+        formData.append("id_observacion", id);
+        formData.append("descripcion", descripcion);
+
+        const response = await fetch("/editar_observacion/", {
+          method: "POST",
+          body: formData,
+          headers: {
             "X-Requested-With": "XMLHttpRequest",
             "X-CSRFToken": csrftoken
-            },
-          });
+          },
+        });
 
+        const data = await response.json();
 
-          const data = await response.json();
-
-          if (data.success) {
-            alert(`${data.mensaje}`);
-          } else {
-            alert(`Error: ${data.error}`);
-          }
-        } catch (error) {
-          console.error(error);
+        // Mostrar mensaje en contenedor
+        if (data.success) {
+          alertEditarContainer.innerHTML = `
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              ${data.mensaje}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          `;
+        } else {
+          alertEditarContainer.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              ${data.error}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          `;
         }
-      });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  });
+
+let idEliminar = null; // guardará el ID de la observación a eliminar
+const confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+
+document.querySelectorAll(".btn-eliminar").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    const parent = e.target.closest(".accordion-item");
+    idEliminar = parent.dataset.id; // guardar ID
+    confirmDeleteModal.show(); // abrir modal
+  });
+});
+btnConfirmDelete.addEventListener("click", async () => {
+  if (!idEliminar) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("id_observacion", idEliminar);
+
+    const response = await fetch("/eliminar_observacion/", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrftoken
+      },
     });
 
-    document.querySelectorAll(".btn-eliminar").forEach(btn => {
-      btn.addEventListener("click", async (e) => {
-        if (!confirm("¿Desea eliminar esta observación?")) return;
+    const data = await response.json();
 
-        const parent = e.target.closest(".accordion-item");
-        const id = parent.dataset.id;
+    // Mostrar mensaje dentro del modal antes de cerrarlo
+    const modalBody = document.querySelector("#confirmDeleteModal .modal-body");
+    if (data.success) {
+      modalBody.innerHTML = `<div class="alert alert-success mb-0">${data.mensaje}</div>`;
+      await cargarObservaciones(); // recargar lista
+    } else {
+      modalBody.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+    }
 
-        try {
-          const formData = new FormData();
-          formData.append("id_observacion", id);
+    // Cerrar modal automáticamente después de 1.5 segundos
+    setTimeout(() => {
+      confirmDeleteModal.hide();
+      // Restaurar mensaje original
+      modalBody.innerHTML = "¿Está seguro que desea eliminar esta observación?";
+    }, 1500);
 
-          const response = await fetch("/eliminar_observacion/", {
-            method: "POST",
-            body: formData,
-            headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CSRFToken": csrftoken
-            },
-          });
-
-          const data = await response.json();
-
-          if (data.success) {
-            await cargarObservaciones();
-          } else {
-            alert(`Error: ${data.error}`);
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      });
-    });
+  } catch (error) {
+    console.error(error);
   }
+});
+}
 
 });
 </script>

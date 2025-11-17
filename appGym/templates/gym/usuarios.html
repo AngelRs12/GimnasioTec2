@@ -215,7 +215,7 @@ Gestión de Usuarios{% endblock %} {% block content %}
             </div>
           </div>
 
-          <!-- SECCIÓN EDITAR (MOVIDA ABAJO Y SIN DUPLICADOS) -->
+          <!-- SECCIÓN EDITAR -->
           <div id="seccion-editar" class="d-none mt-5">
             <h5 class="mb-3 text-warning">Editar Usuario</h5>
             <div id="alerta-editar"></div>
@@ -276,15 +276,35 @@ Gestión de Usuarios{% endblock %} {% block content %}
                 </div>
               </div>
 
-              <!-- Tipo usuario (no editable) -->
+              <!-- Tipo de Usuario -->
               <div class="mb-3">
                 <label class="form-label">Tipo de Usuario</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="editar_tipo"
+                <select
+                  class="form-select"
+                  id="editar_tipo_usuario"
                   name="tipo_usuario"
-                  readonly
+                  required
+                >
+                  <option value="">Seleccione tipo</option>
+                  <option value="alumno">Alumno</option>
+                  <option value="representativo">Representativo</option>
+                  <option value="externo">Externo</option>
+                </select>
+              </div>
+
+              <!-- Campos extra dinámicos -->
+              <div id="editar-campos-extra"></div>
+
+              <div class="mb-3">
+                <label for="editar_foto" class="form-label"
+                  >Foto (opcional)</label
+                >
+                <input
+                  type="file"
+                  class="form-control"
+                  id="editar_foto"
+                  name="foto"
+                  accept="image/*"
                 />
               </div>
 
@@ -304,8 +324,56 @@ Gestión de Usuarios{% endblock %} {% block content %}
     </div>
   </div>
 </div>
-
+<!-- Modal Confirmar Eliminación -->
+<div
+  class="modal fade"
+  id="modalEliminar"
+  tabindex="-1"
+  aria-labelledby="modalEliminarLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEliminarLabel">
+          Confirmar Eliminación
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Cerrar"
+        ></button>
+      </div>
+      <div class="modal-body">¿Deseas eliminar este usuario?</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmarEliminar">
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  const csrftoken = getCookie("csrftoken");
   document.addEventListener("DOMContentLoaded", () => {
     const seccionAgregar = document.getElementById("seccion-agregar");
     const seccionBuscar = document.getElementById("seccion-buscar");
@@ -324,6 +392,58 @@ Gestión de Usuarios{% endblock %} {% block content %}
 
     const tipoUsuario = document.getElementById("tipo_usuario");
     const camposExtra = document.getElementById("campos-extra");
+    let modoEliminar = false;
+
+    const formEliminar = document.getElementById("form-eliminar");
+    const btnConfirmarEliminar = document.getElementById("confirmarEliminar");
+    const modalEliminar = new bootstrap.Modal(
+      document.getElementById("modalEliminar")
+    );
+
+    const editarTipoUsuario = document.getElementById("editar_tipo_usuario");
+    const editarCamposExtra = document.getElementById("editar-campos-extra");
+
+    // Variables para mantener los valores
+    let valorNoControl = "";
+    let valorEquipo = "";
+
+    editarTipoUsuario.addEventListener("change", () => {
+      const tipo = editarTipoUsuario.value;
+
+      // Guardar los valores actuales si existen
+      const noControlInput = editarCamposExtra.querySelector(
+        'input[name="no_control"]'
+      );
+      const equipoInput = editarCamposExtra.querySelector(
+        'input[name="equipo"]'
+      );
+      if (noControlInput) valorNoControl = noControlInput.value;
+      if (equipoInput) valorEquipo = equipoInput.value;
+
+      // Limpiar los campos extra
+      editarCamposExtra.innerHTML = "";
+
+      // Crear campos según tipo
+      if (tipo === "alumno") {
+        editarCamposExtra.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Número de Control</label>
+        <input type="text" class="form-control" name="no_control" value="${valorNoControl}" required>
+      </div>`;
+      }
+
+      if (tipo === "representativo") {
+        editarCamposExtra.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Número de Control</label>
+        <input type="text" class="form-control" name="no_control" value="${valorNoControl}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Equipo</label>
+        <input type="text" class="form-control" name="equipo" value="${valorEquipo}" required>
+      </div>`;
+      }
+    });
 
     function mostrarSeccion(s) {
       [seccionAgregar, seccionBuscar].forEach((sec) =>
@@ -332,6 +452,7 @@ Gestión de Usuarios{% endblock %} {% block content %}
       s.classList.remove("d-none");
       detalleUsuario.classList.add("d-none");
       resultados.style.display = "none";
+      modoEliminar = false; // desactivar modo eliminar al cambiar de sección
     }
 
     mostrarSeccion(seccionBuscar);
@@ -348,6 +469,7 @@ Gestión de Usuarios{% endblock %} {% block content %}
     btnEliminar.addEventListener("click", () => {
       tituloBusqueda.textContent = "Eliminar Usuario";
       mostrarSeccion(seccionBuscar);
+      modoEliminar = true; // activamos modo eliminar
     });
 
     tipoUsuario.addEventListener("change", () => {
@@ -438,6 +560,43 @@ Gestión de Usuarios{% endblock %} {% block content %}
 
     // ------ FUNCIÓN PARA DETALLE ------
     function mostrarDetalle(u) {
+      valorNoControl = u.no_control || "";
+valorEquipo = u.equipo || "";
+      const botonEliminar = document.getElementById("boton-eliminar");
+
+      document.getElementById("editar_id").value = u.id_usuario;
+      document.getElementById("editar_nombre").value = u.nombres;
+      document.getElementById("editar_apellido_p").value = u.apellido_paterno;
+      document.getElementById("editar_apellido_m").value = u.apellido_materno;
+      document.getElementById("editar_tipo_usuario").value = u.tipo_usuario;
+
+      editarCamposExtra.innerHTML = ""; // limpiar
+
+      if (u.tipo_usuario === "alumno") {
+        editarCamposExtra.innerHTML = `
+    <div class="mb-3">
+      <label class="form-label">Número de Control</label>
+      <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
+    </div>`;
+      }
+
+      if (u.tipo_usuario === "representativo") {
+        editarCamposExtra.innerHTML = `
+    <div class="mb-3">
+      <label class="form-label">Número de Control</label>
+      <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Equipo</label>
+      <input type="text" class="form-control" name="equipo" value="${u.equipo}" required>
+    </div>`;
+      }
+      if (modoEliminar) {
+        botonEliminar.classList.remove("d-none");
+        document.getElementById("id_eliminar").value = u.id_usuario;
+      } else {
+        botonEliminar.classList.add("d-none");
+      }
       detalleUsuario.classList.remove("d-none");
 
       document.getElementById(
@@ -510,6 +669,58 @@ Gestión de Usuarios{% endblock %} {% block content %}
         <div class="alert alert-danger">
           Error inesperado en el servidor.
         </div>`;
+      }
+    });
+
+    formEliminar.addEventListener("submit", (e) => {
+      e.preventDefault();
+      // Mostrar el modal en vez del confirm()
+      modalEliminar.show();
+    });
+
+    // Evento del botón de confirmar en el modal
+    btnConfirmarEliminar.addEventListener("click", async () => {
+      const idUsuario = document.getElementById("id_eliminar").value;
+      const alertaEliminar = document.getElementById("alerta-mensaje");
+
+      try {
+        const formData = new FormData();
+        formData.append("id_usuario", idUsuario);
+
+        const response = await fetch("{% url 'eliminar_usuario' %}", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": csrftoken,
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alertaEliminar.innerHTML = `
+        <div class="alert alert-success">
+          ${data.mensaje}
+        </div>`;
+          // Ocultar detalle y resultados
+          document.getElementById("detalle-usuario").classList.add("d-none");
+          resultados.style.display = "none";
+          modoEliminar = false;
+        } else {
+          alertaEliminar.innerHTML = `
+        <div class="alert alert-danger">
+          ${data.error}
+        </div>`;
+        }
+      } catch (error) {
+        alertaEliminar.innerHTML = `
+      <div class="alert alert-danger">
+        Error inesperado al eliminar el usuario.
+      </div>`;
+        console.error(error);
+      } finally {
+        modalEliminar.hide(); // cerrar modal después de la acción
       }
     });
   });
