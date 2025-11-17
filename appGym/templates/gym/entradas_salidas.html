@@ -1,101 +1,228 @@
 {% extends 'gym/base.html' %}
 {% load static bootstrap5 %}
-
-{% block title %}Registrar entrada/salida{% endblock %}
+{% block title %}Gestión de Usuarios{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-      <div class="card shadow">
-        <div class="card-header bg-dark text-white text-center">
-          <h4 class="mb-0">Registrar Entrada / Salida</h4>
+    <div class="col-md-10 col-lg-8">
+      <div class="card shadow-lg border-0">
+        <div class="card-header fondo text-white text-center">
+          <h4 class="mb-0">Entradas y Salidas</h4>
         </div>
+
         <div class="card-body">
-          <form method="POST" id="registro-form">
+
+          <!-- FORMULARIO DE BÚSQUEDA -->
+          <form id="form-buscar" method="GET" action="{% url 'gestion_usuarios' %}">
             {% csrf_token %}
-            
-            <!-- Selección de tipo de registro -->
-            <div class="mb-3">
-              <label for="tipo" class="form-label">Tipo de registro</label>
-              <select name="tipo" id="tipo" class="form-select" required>
-                <option value="" selected disabled>Seleccione una opción</option>
-                <option value="entrada">Entrada</option>
-                <option value="salida">Salida</option>
-              </select>
+            <h5 class="text-center mb-4">
+              Favor de buscar al usuario para registrar su entrada/salida
+            </h5>
+
+            <!-- CONTENEDOR DE ALERTAS -->
+            <div id="alert-container" class="mt-3"></div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <input type="number" class="form-control" id="buscar_id" name="id_usuario"
+                  placeholder="Buscar por ID" />
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <input type="text" class="form-control" id="buscar_nombre" name="nombre"
+                  placeholder="Buscar por nombre" />
+              </div>
             </div>
 
-            <!-- Opción 1: ID -->
-            <div class="mb-3">
-              <label for="id_registro" class="form-label">ID</label>
-              <input type="number" class="form-control" id="id_registro" name="id_registro" placeholder="Ingrese ID del usuario">
-            </div>
-
-            <!-- Opción 2: No. de control -->
-            <div class="mb-3">
-              <label for="no_control" class="form-label">Número de control</label>
-              <input type="text" class="form-control" id="no_control" name="no_control" placeholder="Ingrese número de control">
-            </div>
-
-            <!-- Opción 3: Nombre con sugerencias -->
-            <div class="mb-3 position-relative">
-              <label for="nombre" class="form-label">Nombre</label>
-              <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Escriba el nombre" autocomplete="off">
-              <div id="sugerencias" class="list-group position-absolute w-100 shadow" style="z-index: 10; display: none;"></div>
-            </div>
-
-            <!-- Botón enviar -->
             <div class="text-center">
-              <button type="submit" class="btn btn-dark w-100">Registrar</button>
+              <button type="submit" class="btn btn-primary w-100">
+                Buscar
+              </button>
             </div>
           </form>
-        </div>
+
+          <!-- LISTA RESULTADOS -->
+          <ul id="resultados" class="list-group mt-4" style="display: none"></ul>
+
+          <!-- DETALLE DEL USUARIO -->
+          <div id="detalle-usuario" class="mt-4 d-none">
+            <div class="card">
+              <div class="card-body d-flex align-items-center justify-content-between">
+                
+                <img id="detalle-foto" src="" alt="Foto" class="rounded me-3 border"
+                  style="width: 80px; height: 80px; object-fit: cover" />
+
+                <div>
+                  <h6 id="detalle-nombre" class="mb-1"></h6>
+                  <p id="detalle-id" class="text-muted mb-1"></p>
+                  <p id="detalle-tipo" class="text-muted mb-0"></p>
+                </div>
+
+                <div id="acciones-usuario" class="mt-3 d-none text-center">
+                  <button class="btn btn-success " id="btn-entrada">Registrar Entrada</button>
+                  <button class="btn btn-danger" id="btn-salida">Registrar Salida</button>
+                </div>
+              
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- card-body -->
       </div>
     </div>
   </div>
 </div>
 
-<!-- Script para sugerencias -->
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const inputNombre = document.getElementById("nombre");
-  const sugerencias = document.getElementById("sugerencias");
+/* ---------------- CSRF ---------------- */
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
 
-  inputNombre.addEventListener("input", async () => {
-    const query = inputNombre.value.trim();
-    if (query.length < 2) {
-      sugerencias.style.display = "none";
+const csrftoken = getCookie("csrftoken");
+
+/* ---------------- ALERTA BOOTSTRAP ---------------- */
+function mostrarAlertaBootstrap(tipo, mensaje) {
+  const alertContainer = document.getElementById("alert-container");
+
+  const alertDiv = document.createElement("div");
+  alertDiv.className = `alert alert-${tipo} alert-dismissible fade show`;
+  alertDiv.role = "alert";
+  alertDiv.innerHTML = `
+    ${mensaje}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+
+  alertContainer.innerHTML = ""; // limpia alertas anteriores
+  alertContainer.appendChild(alertDiv);
+
+  setTimeout(() => {
+    alertDiv.classList.remove("show");
+    alertDiv.classList.add("hide");
+  }, 4000);
+}
+
+/* ---------------- BUSQUEDA ---------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const formBuscar = document.getElementById("form-buscar");
+  const resultados = document.getElementById("resultados");
+  const detalleUsuario = document.getElementById("detalle-usuario");
+
+  formBuscar.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const queryNombre = document.getElementById("buscar_nombre").value.trim();
+    const queryId = document.getElementById("buscar_id").value.trim();
+
+    resultados.innerHTML = "";
+    resultados.style.display = "block";
+    detalleUsuario.classList.add("d-none");
+
+    if (!queryNombre && !queryId) {
+      mostrarAlertaBootstrap("danger", "Ingresa un ID o un nombre.");
       return;
     }
 
-    // Fetch a la vista que devuelve sugerencias en JSON
-    const response = await fetch(`/buscar_usuarios/?q=${query}`);
-    const data = await response.json();
-
-    sugerencias.innerHTML = "";
-    if (data.length > 0) {
-      data.forEach(nombre => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "list-group-item list-group-item-action";
-        item.textContent = nombre;
-        item.addEventListener("click", () => {
-          inputNombre.value = nombre;
-          sugerencias.style.display = "none";
-        });
-        sugerencias.appendChild(item);
+    try {
+      const response = await fetch(`${formBuscar.action}?id_usuario=${queryId}&nombre=${queryNombre}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
       });
-      sugerencias.style.display = "block";
-    } else {
-      sugerencias.style.display = "none";
+
+      const data = await response.json();
+
+      if (!data.success) {
+        resultados.innerHTML = `
+          <li class="list-group-item text-center text-danger">${data.error}</li>`;
+        return;
+      }
+
+      if (data.resultados.length === 0) {
+        resultados.innerHTML = `
+          <li class="list-group-item text-center text-muted">Sin resultados</li>`;
+        return;
+      }
+
+      data.resultados.forEach((u) => {
+        const li = document.createElement("li");
+        li.className = "list-group-item list-group-item-action";
+        li.textContent = `ID: ${u.id_usuario} - ${u.nombres} ${u.apellido_paterno} (${u.tipo_usuario})`;
+        li.onclick = () => mostrarDetalle(u);
+        resultados.appendChild(li);
+      });
+
+    } catch (error) {
+      mostrarAlertaBootstrap("danger", "Error al conectar con el servidor.");
     }
   });
 
-  document.addEventListener("click", (e) => {
-    if (!sugerencias.contains(e.target) && e.target !== inputNombre) {
-      sugerencias.style.display = "none";
+  /* ---------------- MOSTRAR DETALLE ---------------- */
+  function mostrarDetalle(u) {
+
+    window.usuarioSeleccionado = u.id_usuario;
+
+    detalleUsuario.classList.remove("d-none");
+    document.getElementById("acciones-usuario").classList.remove("d-none");
+
+    document.getElementById("detalle-nombre").textContent =
+      `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
+
+    document.getElementById("detalle-id").textContent = "ID: " + u.id_usuario;
+    document.getElementById("detalle-tipo").textContent = "Tipo: " + u.tipo_usuario;
+    document.getElementById("detalle-foto").src = u.foto || "https://via.placeholder.com/80";
+  }
+
+  document.getElementById("btn-entrada").onclick = () => {
+    if (!window.usuarioSeleccionado) return;
+    registrarAccion("entrada", window.usuarioSeleccionado);
+  };
+
+  document.getElementById("btn-salida").onclick = () => {
+    if (!window.usuarioSeleccionado) return;
+    registrarAccion("salida", window.usuarioSeleccionado);
+  };
+
+  /* ---------------- REGISTRAR ACCIÓN ---------------- */
+  async function registrarAccion(tipo, id_usuario) {
+    try {
+      const formData = new FormData();
+      formData.append("id_usuario", id_usuario);
+      formData.append("tipo", tipo.toUpperCase());
+
+      const response = await fetch("{% url 'registrar_ingreso' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        mostrarAlertaBootstrap("success", data.mensaje);
+      } else {
+        mostrarAlertaBootstrap("danger",  data.error);
+      }
+
+    } catch (error) {
+      mostrarAlertaBootstrap("danger", "Error de red: " + error);
     }
-  });
+  }
+
 });
 </script>
+
 {% endblock %}

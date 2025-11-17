@@ -11,12 +11,34 @@ Gestión de Usuarios{% endblock %} {% block content %}
         <div class="card-body">
           <!-- Menú principal -->
           <div class="d-flex justify-content-around mb-4">
-            <button class="btn btn-success" id="btn-agregar">Agregar</button>
-            <button class="btn btn-primary" id="btn-buscar">Buscar</button>
-            <button class="btn btn-warning text-white" id="btn-editar">
+            <button
+              class="btn btn-success"
+              id="btn-agregar"
+              onclick="ocultarEditar()"
+            >
+              Agregar
+            </button>
+            <button
+              class="btn btn-primary"
+              id="btn-buscar"
+              onclick="ocultarEditar()"
+            >
+              Buscar
+            </button>
+            <button
+              class="btn btn-warning text-white"
+              id="btn-editar"
+              onclick="mostrarEditar()"
+            >
               Editar
             </button>
-            <button class="btn btn-danger" id="btn-eliminar">Eliminar</button>
+            <button
+              class="btn btn-danger"
+              id="btn-eliminar"
+              onclick="ocultarEditar()"
+            >
+              Eliminar
+            </button>
           </div>
 
           <!-- SECCIÓN AGREGAR -->
@@ -112,7 +134,7 @@ Gestión de Usuarios{% endblock %} {% block content %}
             </form>
           </div>
 
-          <!-- SECCIÓN BUSCAR / EDITAR / ELIMINAR -->
+          <!-- SECCIÓN BUSCAR / ELIMINAR -->
           <div id="seccion-buscar">
             <h5 class="mb-3 text-primary" id="titulo-busqueda">
               Buscar Usuario
@@ -174,42 +196,6 @@ Gestión de Usuarios{% endblock %} {% block content %}
                   </div>
                 </div>
 
-                <!-- Formulario de edición -->
-                <div id="form-editar" class="card-body border-top d-none">
-                  <form method="POST" action="{% url 'gestion_usuarios' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="accion" value="editar" />
-                    <input type="hidden" name="id_usuario" id="id_editar" />
-
-                    <div class="mb-3">
-                      <label class="form-label">Nuevo nombre</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        name="nuevo_nombre"
-                        id="editar_nombre"
-                        required
-                      />
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">Nuevo correo</label>
-                      <input
-                        type="email"
-                        class="form-control"
-                        name="nuevo_correo"
-                        id="editar_correo"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      class="btn btn-warning text-white w-100"
-                    >
-                      Guardar Cambios
-                    </button>
-                  </form>
-                </div>
-
                 <!-- Botón eliminar -->
                 <div id="boton-eliminar" class="card-footer text-center d-none">
                   <form
@@ -228,7 +214,90 @@ Gestión de Usuarios{% endblock %} {% block content %}
               </div>
             </div>
           </div>
-          <!-- /seccion buscar -->
+
+          <!-- SECCIÓN EDITAR (MOVIDA ABAJO Y SIN DUPLICADOS) -->
+          <div id="seccion-editar" class="d-none mt-5">
+            <h5 class="mb-3 text-warning">Editar Usuario</h5>
+            <div id="alerta-editar"></div>
+
+            <form
+              method="POST"
+              id="form-editar-usuario"
+              action="{% url 'gestion_usuarios' %}"
+            >
+              {% csrf_token %}
+              <input type="hidden" name="accion" value="editar" />
+
+              <!-- ID (no editable) -->
+              <div class="mb-3">
+                <label class="form-label">ID Usuario</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editar_id"
+                  name="id_usuario"
+                  readonly
+                />
+              </div>
+
+              <!-- Nombre -->
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Nombre</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editar_nombre"
+                    name="nombre"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Apellido Paterno</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editar_apellido_p"
+                    name="apellido_paterno"
+                    required
+                  />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Apellido Materno</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editar_apellido_m"
+                    name="apellido_materno"
+                    required
+                  />
+                </div>
+              </div>
+
+              <!-- Tipo usuario (no editable) -->
+              <div class="mb-3">
+                <label class="form-label">Tipo de Usuario</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editar_tipo"
+                  name="tipo_usuario"
+                  readonly
+                />
+              </div>
+
+              <!-- Campos extra -->
+              <div id="editar-campos-extra"></div>
+
+              <div class="text-center">
+                <button type="submit" class="btn btn-warning text-white w-100">
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
         <!-- /card-body -->
       </div>
@@ -242,8 +311,6 @@ Gestión de Usuarios{% endblock %} {% block content %}
     const seccionBuscar = document.getElementById("seccion-buscar");
     const detalleUsuario = document.getElementById("detalle-usuario");
     const resultados = document.getElementById("resultados");
-    const botonEliminar = document.getElementById("boton-eliminar");
-    const formEditar = document.getElementById("form-editar");
     const tituloBusqueda = document.getElementById("titulo-busqueda");
 
     const btnAgregar = document.getElementById("btn-agregar");
@@ -252,173 +319,209 @@ Gestión de Usuarios{% endblock %} {% block content %}
     const btnEliminar = document.getElementById("btn-eliminar");
 
     const formAgregar = document.getElementById("form-agregar");
-    const alerta = document.getElementById("alerta-mensaje");
-
     const formBuscar = document.getElementById("form-buscar");
+    const alerta = document.getElementById("alerta-mensaje");
 
     const tipoUsuario = document.getElementById("tipo_usuario");
     const camposExtra = document.getElementById("campos-extra");
 
-    function mostrarSeccion(seccion) {
-      [seccionAgregar, seccionBuscar].forEach((s) => s.classList.add("d-none"));
-      seccion.classList.remove("d-none");
+    function mostrarSeccion(s) {
+      [seccionAgregar, seccionBuscar].forEach((sec) =>
+        sec.classList.add("d-none")
+      );
+      s.classList.remove("d-none");
       detalleUsuario.classList.add("d-none");
       resultados.style.display = "none";
     }
 
-    // Mostrar Buscar por defecto
     mostrarSeccion(seccionBuscar);
 
     btnAgregar.addEventListener("click", () => mostrarSeccion(seccionAgregar));
     btnBuscar.addEventListener("click", () => {
       tituloBusqueda.textContent = "Buscar Usuario";
       mostrarSeccion(seccionBuscar);
-      botonEliminar.classList.add("d-none");
-      formEditar.classList.add("d-none");
-    });
-    btnEliminar.addEventListener("click", () => {
-      tituloBusqueda.textContent = "Eliminar Usuario";
-      mostrarSeccion(seccionBuscar);
-      botonEliminar.classList.remove("d-none");
-      formEditar.classList.add("d-none");
     });
     btnEditar.addEventListener("click", () => {
       tituloBusqueda.textContent = "Editar Usuario";
       mostrarSeccion(seccionBuscar);
-      botonEliminar.classList.add("d-none");
-      formEditar.classList.remove("d-none");
     });
+    btnEliminar.addEventListener("click", () => {
+      tituloBusqueda.textContent = "Eliminar Usuario";
+      mostrarSeccion(seccionBuscar);
+    });
+
     tipoUsuario.addEventListener("change", () => {
       const tipo = tipoUsuario.value;
       camposExtra.innerHTML = "";
 
       if (tipo === "alumno") {
         camposExtra.innerHTML = `
-        <div class="mb-3">
-          <label for="no_control" class="form-label">Número de Control</label>
-          <input type="text" class="form-control" id="no_control" name="no_control" required>
-        </div>`;
-      } else if (tipo === "representativo") {
+      <div class="mb-3">
+        <label class="form-label">Número de Control</label>
+        <input type="text" class="form-control" name="no_control" required>
+      </div>`;
+      }
+
+      if (tipo === "representativo") {
         camposExtra.innerHTML = `
-        <div class="mb-3">
-          <label for="no_control" class="form-label">Número de Control</label>
-          <input type="text" class="form-control" id="no_control" name="no_control" required>
-        </div>
-        <div class="mb-3">
-          <label for="equipo" class="form-label">Equipo</label>
-          <input type="text" class="form-control" id="equipo" name="equipo" required>
-        </div>`;
+      <div class="mb-3">
+        <label class="form-label">Número de Control</label>
+        <input type="text" class="form-control" name="no_control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Equipo</label>
+        <input type="text" class="form-control" name="equipo" required>
+      </div>`;
       }
     });
 
-    // Simulación de búsqueda (como tu versión)
-    document
-      .getElementById("form-buscar")
-      .addEventListener("submit", async (e) => {
-        e.preventDefault();
+    // BUSCAR USUARIO
+    formBuscar.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-        const queryNombre = document
-          .getElementById("buscar_nombre")
-          .value.trim();
-        const queryId = document.getElementById("buscar_id").value.trim();
+      const queryNombre = document.getElementById("buscar_nombre").value.trim();
+      const queryId = document.getElementById("buscar_id").value.trim();
 
-        resultados.innerHTML = "";
-        resultados.style.display = "block";
-        detalleUsuario.classList.add("d-none");
+      resultados.innerHTML = "";
+      resultados.style.display = "block";
+      detalleUsuario.classList.add("d-none");
 
-        if (!queryNombre && !queryId) {
+      if (!queryNombre && !queryId) {
+        resultados.innerHTML = `
+        <li class="list-group-item text-center text-danger">
+           Ingresa un ID o un Nombre.
+        </li>`;
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${formBuscar.action}?id_usuario=${queryId}&nombre=${queryNombre}`,
+          { headers: { "X-Requested-With": "XMLHttpRequest" } }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
           resultados.innerHTML = `
-      <li class="list-group-item text-center text-danger">
-        ⚠️ Debes ingresar un ID o un Nombre para buscar.
-      </li>`;
+          <li class="list-group-item text-center text-danger">
+             ${data.error}
+          </li>`;
           return;
         }
 
-        try {
-          const response = await fetch(
-            `${formBuscar.action}?id_usuario=${queryId}&nombre=${queryNombre}`,
-            { headers: { "X-Requested-With": "XMLHttpRequest" } }
-          );
-
-          const data = await response.json();
-
-          if (!data.success) {
-            resultados.innerHTML = `
-        <li class="list-group-item text-center text-danger">
-          ❌ ${data.error}
-        </li>`;
-            return;
-          }
-
-          if (data.resultados.length === 0) {
-            resultados.innerHTML = `
-        <li class="list-group-item text-center text-muted">
-          Sin resultados
-        </li>`;
-            return;
-          }
-
-          // Mostrar coincidencias
-          data.resultados.forEach((u) => {
-            const li = document.createElement("li");
-            li.className = "list-group-item list-group-item-action";
-            li.textContent = `ID: ${u.id_usuario} - ${u.nombres} ${u.apellido_paterno} (${u.tipo_usuario})`;
-            li.onclick = () => {
-              detalleUsuario.classList.remove("d-none");
-              document.getElementById(
-                "detalle-nombre"
-              ).textContent = `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
-              document.getElementById("detalle-id").textContent =
-                "ID: " + u.id_usuario;
-              document.getElementById("detalle-tipo").textContent =
-                "Tipo: " + u.tipo_usuario;
-              document.getElementById("detalle-foto").src =
-                u.foto || "https://via.placeholder.com/80";
-              document.getElementById("id_eliminar").value = u.id_usuario;
-            };
-            resultados.appendChild(li);
-          });
-        } catch (error) {
-          console.error(error);
+        if (data.resultados.length === 0) {
           resultados.innerHTML = `
-      <li class="list-group-item text-center text-danger">
-        ⚠️ Error al conectar con el servidor.
-      </li>`;
+          <li class="list-group-item text-center text-muted">
+            Sin resultados
+          </li>`;
+          return;
         }
-      });
 
-    // Alertas
-    function mostrarMensaje(tipo, mensaje) {
-      alerta.innerHTML = `
-      <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
-        ${mensaje}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        // LISTAR RESULTADOS
+        data.resultados.forEach((u) => {
+          const li = document.createElement("li");
+          li.className = "list-group-item list-group-item-action";
+          li.textContent = `ID: ${u.id_usuario} - ${u.nombres} ${u.apellido_paterno} (${u.tipo_usuario})`;
+
+          li.onclick = () => mostrarDetalle(u);
+
+          resultados.appendChild(li);
+        });
+      } catch (error) {
+        resultados.innerHTML = `
+        <li class="list-group-item text-center text-danger">
+           Error al conectar con el servidor.
+        </li>`;
+      }
+    });
+
+    // ------ FUNCIÓN PARA DETALLE ------
+    function mostrarDetalle(u) {
+      detalleUsuario.classList.remove("d-none");
+
+      document.getElementById(
+        "detalle-nombre"
+      ).textContent = `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
+      document.getElementById("detalle-id").textContent = "ID: " + u.id_usuario;
+      document.getElementById("detalle-tipo").textContent =
+        "Tipo: " + u.tipo_usuario;
+      document.getElementById("detalle-foto").src =
+        u.foto || "https://via.placeholder.com/80";
+
+      // LLENAR FORMULARIO EDITAR
+      document.getElementById("seccion-editar").classList.remove("d-none");
+
+      document.getElementById("editar_id").value = u.id_usuario;
+      document.getElementById("editar_nombre").value = u.nombres;
+      document.getElementById("editar_apellido_p").value = u.apellido_paterno;
+      document.getElementById("editar_apellido_m").value = u.apellido_materno;
+      document.getElementById("editar_tipo").value = u.tipo_usuario;
+
+      const extra = document.getElementById("editar-campos-extra");
+      extra.innerHTML = "";
+
+      if (u.tipo_usuario === "alumno") {
+        extra.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Número de Control</label>
+        <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
       </div>`;
+      }
+
+      if (u.tipo_usuario === "representativo") {
+        extra.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Número de Control</label>
+        <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Equipo</label>
+        <input type="text" class="form-control" name="equipo" value="${u.equipo}" required>
+      </div>`;
+      }
     }
 
-    // Agregar usuario
+    // ------- AGREGAR USUARIO -------
     formAgregar.addEventListener("submit", async (e) => {
       e.preventDefault();
       const formData = new FormData(formAgregar);
+
       try {
         const response = await fetch(formAgregar.action, {
           method: "POST",
           body: formData,
           headers: { "X-Requested-With": "XMLHttpRequest" },
         });
+
         const data = await response.json();
-        if (response.ok && data.success) {
-          mostrarMensaje("success", "Usuario agregado correctamente.");
+
+        if (data.success) {
+          alerta.innerHTML = `
+          <div class="alert alert-success">Usuario agregado correctamente.</div>`;
           formAgregar.reset();
-          document.getElementById("campos-extra").innerHTML = "";
+          camposExtra.innerHTML = "";
         } else {
-          mostrarMensaje("danger", data.error || "Error al agregar usuario.");
+          alerta.innerHTML = `
+          <div class="alert alert-danger">${data.error}</div>`;
         }
       } catch {
-        mostrarMensaje("danger", "Error inesperado en el servidor.");
+        alerta.innerHTML = `
+        <div class="alert alert-danger">
+          Error inesperado en el servidor.
+        </div>`;
       }
     });
   });
+  // Oculta la sección editar
+  function ocultarEditar() {
+    document.getElementById("seccion-editar").style.display = "none";
+  }
+
+  // Muestra la sección editar
+  function mostrarEditar() {
+    document.getElementById("seccion-editar").style.display = "block";
+  }
 </script>
 
 {% endblock %}

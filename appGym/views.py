@@ -38,6 +38,38 @@ def actividades(request):
 def acercade(request):
     return render(request, 'gym/acercade.html')
 
+def sesion(request):
+    return render(request, 'gym/sesion.html')
+
+def login(request):
+    if request.method == "POST":
+        usuario = request.POST.get("usuario")
+        password = request.POST.get("password")
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT validar_usuario_admin(%s, %s);",
+                [usuario, password]
+            )
+            resultado = cursor.fetchone()[0]  # True o False
+
+        if resultado:  # Si las credenciales son correctas
+            request.session["usuario_admin"] = usuario
+            return redirect("index")  # Ajusta a tu vista principal
+
+        else:  # Credenciales incorrectas
+            return render(request, 'gym/sesion.html', {
+                "error": "Usuario o contraseña incorrectos"
+            })
+
+    return render(request, "index.html")
+
+def logout(request):
+    request.session.flush()
+    return redirect("index")  # Ajusta a tu vista principal
+
+#Backend
+
 def gestion_usuarios(request):
     if request.method == "POST":
         accion = request.POST.get("accion")
@@ -98,21 +130,116 @@ def gestion_usuarios(request):
     elif request.method == "GET" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         id_usuario = request.GET.get("id_usuario", "").strip()
         nombre = request.GET.get("nombre", "").strip()
-        print("SP ejecutado correctamente1")
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT * FROM buscar_usuario(%s, %s)", [id_usuario, nombre])
                 columnas = [col[0] for col in cursor.description]
                 resultados = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
-                print("SP ejecutado correctamente22222")
             return JsonResponse({"success": True, "resultados": resultados})
 
         except Exception as e:
             error_str = str(e).split("CONTEXT:")[0].strip()
-            print("SP ejecutado correctamente2")
             return JsonResponse({"success": False, "error": error_str}, status=400)
 
     # Render inicial (vista HTML normal)
     return render(request, "gym/usuarios.html")
 
-  
+
+def registrar_ingreso(request):
+    if request.method == "POST":
+        id_usuario = request.POST.get("id_usuario")
+        tipo = request.POST.get("tipo")
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT insertar_ingreso(%s, %s);",
+                    [id_usuario, tipo]
+                )
+                mensaje = cursor.fetchone()[0]
+
+            return JsonResponse({"success": True, "mensaje": mensaje})
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Método no permitido"})
+
+
+def guardar_observacion(request):
+    if request.method == "POST":
+        titulo = request.POST.get("titulo")
+        descripcion = request.POST.get("descripcion")
+        fecha = request.POST.get("fecha_publicacion")
+
+        if not titulo or not descripcion or not fecha:
+            return JsonResponse({"success": False, "error": "Todos los campos son obligatorios."})
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT insertar_observacion(%s, %s, %s);",
+                    [titulo, descripcion, fecha]
+                )
+                mensaje = cursor.fetchone()[0]
+
+            return JsonResponse({"success": True, "mensaje": mensaje})
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Método no permitido"})
+
+
+def listar_observaciones(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM listar_observaciones();")
+        rows = cursor.fetchall()
+
+    columnas = ["id_observacion", "titulo", "descripcion", "fecha_publicacion"]
+    data = [dict(zip(columnas, fila)) for fila in rows]
+
+    return JsonResponse(data, safe=False)
+
+
+def editar_observacion_view(request):
+    if request.method == "POST":
+        id_observacion = request.POST.get("id_observacion")
+        descripcion = request.POST.get("descripcion")
+
+        if not id_observacion or not descripcion:
+            return JsonResponse({"success": False, "error": "ID y descripción son obligatorios."})
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT editar_observacion(%s, %s);",
+                    [id_observacion, descripcion]
+                )
+                mensaje = cursor.fetchone()[0]
+
+            return JsonResponse({"success": True, "mensaje": mensaje})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Método no permitido"})
+
+def eliminar_observacion_view(request):
+    if request.method == "POST":
+        id_observacion = request.POST.get("id_observacion")
+
+        if not id_observacion:
+            return JsonResponse({"success": False, "error": "ID es obligatorio."})
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT eliminar_observacion(%s);",
+                    [id_observacion]
+                )
+                mensaje = cursor.fetchone()[0]
+
+            return JsonResponse({"success": True, "mensaje": mensaje})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Método no permitido"})

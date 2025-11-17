@@ -24,7 +24,32 @@
     <!-- Footer -->
     {% include 'gym/includes/footer.html' %}
   </div>
+<!-- Modal de confirmación de cierre de sesión -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
 
+      <div class="modal-header fondo text-white">
+        <h5 class="modal-title" id="logoutModalLabel">Confirmar cierre de sesión</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        ¿Seguro que deseas cerrar la sesión?
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+        <!-- Botón que ejecuta el logout real -->
+        <a href="{% url 'logout' %}" class="btn text-white fondo">
+          Cerrar Sesión
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
   {% bootstrap_javascript %}
 </body>
 </html>

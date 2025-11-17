@@ -13,5 +13,13 @@ urlpatterns = [
     path('actividades/', views.actividades, name='actividades'),
     path('entrenadores/', views.entrenadores, name='entrenadores'),
     path('acercade/', views.acercade, name='acercade'),
-    path('gestion_usuarios/', views.gestion_usuarios, name='gestion_usuarios')
+    path('gestion_usuarios/', views.gestion_usuarios, name='gestion_usuarios'),
+    path('sesion/', views.sesion, name='sesion'),
+    path('login/', views.login, name='login'),
+    path('logout/', views.logout, name='logout'),
+    path("registrar_ingreso/", views.registrar_ingreso, name="registrar_ingreso"),
+    path("guardar_observacion/", views.guardar_observacion, name="guardar_observacion"),
+    path("listar_observaciones/", views.listar_observaciones, name="listar_observaciones"),
+    path('editar_observacion/', views.editar_observacion_view, name='editar_observacion'),
+    path('eliminar_observacion/', views.eliminar_observacion_view, name='eliminar_observacion'),
 ]

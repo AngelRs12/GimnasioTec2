@@ -115,22 +115,40 @@
     </div>
   </div>
 </nav>
-
 <!-- Barra lateral -->
 <div id="sidebar" class="sidebar">
+
   <!-- Encabezado con título y botón -->
-  <div class="sidebar-header">
-    <span class="sidebar-title">Menú</span>
+  <div class="sidebar-header"style="justify-content: space-evenly; !important">
+  
+    
     <button id="closeSidebar" class="close-btn">&times;</button>
+    
+    {% if request.session.usuario_admin %}
+      <span class="sidebar-title">Bienvenido: <br>{{ request.session.usuario_admin }}</span>
+    {% else %}
+      <span class="sidebar-title">Menú</span>
+    {% endif %}
   </div>
 
+  {% if request.session.usuario_admin %}
+      <!-- Sesión iniciada -->
+       
   <!-- Enlaces del menú -->
-  <a href="{% url 'index' %}">🏠 Inicio</a>
-  <a href="{% url 'entradas_salidas' %}">🚪 Entradas y Salidas</a>
-  <a href="{% url 'usuarios' %}">👥 Usuarios</a>
-  <a href="{% url 'membresias' %}">💳 Membresías</a>
-  <a href="{% url 'reportes' %}">📊 Reportes</a>
-  <a href="{% url 'observaciones' %}">🗒️ Observaciones</a>
+      <a href="{% url 'index' %}">🏠 Inicio</a>
+      <a href="{% url 'entradas_salidas' %}">🚪 Entradas y Salidas</a>
+      <a href="{% url 'usuarios' %}">👥 Usuarios</a>
+      <a href="{% url 'membresias' %}">💳 Membresías</a>
+      <a href="{% url 'reportes' %}">📊 Reportes</a>
+      <a href="{% url 'observaciones' %}">🗒️ Observaciones</a>
+      <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">
+        🔒 Cerrar Sesión
+    </a>
+  {% else %}
+      <!-- No hay sesión -->
+      <a href="{% url 'sesion' %}">🔌 Iniciar Sesión</a>
+  {% endif %}
+
 </div>
 
 <script>
