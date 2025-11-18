@@ -1,0 +1,52 @@
+{% extends 'gym/base.html' %}
+{% load static %}
+
+{% block title %}Crear Usuario | Gimnasio{% endblock %}
+
+{% block content %}
+
+<div class="container d-flex justify-content-center py-5">
+    <div class="card shadow-lg border-0 mx-auto" style="max-width: 400px; width: 100%;">
+
+        <!-- Encabezado -->
+        <div class="card-header text-center fondo text-white">
+            <h4 class="mb-0">Crear Nuevo Usuario</h4>
+        </div>
+
+        <div class="card-body">
+
+            {% if error %}
+                <div class="alert alert-danger text-center">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+            <!-- Formulario -->
+            <form id="formNuevoUsuario" method="POST" action="{% url 'crear_usuario_admin' %}">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="usuario" class="form-label">Usuario</label>
+                    <input type="text" id="usuario" name="usuario" class="form-control"
+                           placeholder="Ingresa el usuario" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input type="password" id="password" name="password" class="form-control"
+                           placeholder="Ingresa la contraseña" required>
+                </div>
+
+                <button type="submit" class="btn w-100 text-white fondo">
+                    Crear Usuario
+                </button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+

@@ -23,4 +23,7 @@ urlpatterns = [
     path('editar_observacion/', views.editar_observacion_view, name='editar_observacion'),
     path('eliminar_observacion/', views.eliminar_observacion_view, name='eliminar_observacion'),
     path("eliminar_usuario/", views.eliminar_usuario, name="eliminar_usuario"),
+   path('crear_usuario/', views.crear_usuario, name='crear_usuario'),
+  path('crear_usuario_admin/', views.crear_usuario_admin, name='crear_usuario_admin'),
+    
 ]

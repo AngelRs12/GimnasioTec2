@@ -70,6 +70,27 @@ def logout(request):
 
 #Backend
 
+def crear_usuario(request):   
+    return render(request, 'gym/crear_usuario.html')
+
+def crear_usuario_admin(request):
+    if request.method == "POST":
+        usuario = request.POST.get("usuario")
+        password = request.POST.get("password")
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO public."Usuarios_admin" ("Usuario", "Password") VALUES (%s, %s);',
+                [usuario, password]
+            )
+
+        # Ajusta a la vista a la que quieras regresar
+    return render(request, "gym/crear_usuario.html")
+
+
+
+
+
 def gestion_usuarios(request):
     if request.method == "POST":
         accion = request.POST.get("accion")
