@@ -100,10 +100,9 @@ def gestion_usuarios(request):
                     # Si es una petición AJAX, devolver JSON
                     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                         return JsonResponse({
-                            "success": True,
-                            "mensaje": "Usuario agregado correctamente.",
-                            "id_usuario": nuevo_id
-                        })
+                        "success": True,
+                        "mensaje": f"Usuario agregado correctamente (ID: {nuevo_id}).",
+                    })
 
                     # Si no es AJAX, render normal
                     return render(
@@ -114,6 +113,52 @@ def gestion_usuarios(request):
 
             except Exception as e:
                 error_msg = str(e)
+
+
+        if accion == "editar":
+            id_usuario = request.POST.get("id_usuario")   # ← AQUI ES DONDE LO NECESITAS
+            nombre = request.POST.get("nombre")
+            apellido_paterno = request.POST.get("apellido_paterno")
+            apellido_materno = request.POST.get("apellido_materno")
+            tipo_usuario = request.POST.get("tipo_usuario")
+            no_control = request.POST.get("no_control")
+            equipo = request.POST.get("equipo")
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT editar_usuario_general(%s, %s, %s, %s, %s, %s, %s)
+                    """, [
+                        id_usuario,
+                        nombre,
+                        apellido_paterno,
+                        apellido_materno,
+                        tipo_usuario,
+                        no_control if no_control else None,
+                        equipo if equipo else None
+                    ])
+
+                    mensaje = cursor.fetchone()[0]  # La función retorna texto
+
+                    # Petición AJAX → JSON
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({
+                            "success": True,
+                            "mensaje": mensaje,
+                            "id_usuario": id_usuario
+                        })
+
+                    # Petición normal → recarga de página
+                    return render(
+                        request,
+                        "gym/usuarios.html",
+                        {"mensaje": mensaje}
+                    )
+
+            except Exception as e:
+                return JsonResponse({
+                    "success": False,
+                    "error": str(e)
+                })
 
         # Si viene con "CONTEXT:", cortamos desde ahí
         if "CONTEXT:" in error_msg:

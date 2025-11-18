@@ -462,16 +462,24 @@ Gestión de Usuarios{% endblock %} {% block content %}
       tituloBusqueda.textContent = "Buscar Usuario";
       mostrarSeccion(seccionBuscar);
     });
-    btnEditar.addEventListener("click", () => {
-      tituloBusqueda.textContent = "Editar Usuario";
-      mostrarSeccion(seccionBuscar);
-    });
-    btnEliminar.addEventListener("click", () => {
-      tituloBusqueda.textContent = "Eliminar Usuario";
-      mostrarSeccion(seccionBuscar);
-      modoEliminar = true; // activamos modo eliminar
-    });
+    btnBuscar.addEventListener("click", () => {
+  tituloBusqueda.textContent = "Buscar Usuario";
+  tituloBusqueda.className = "mb-3 text-primary";
+  mostrarSeccion(seccionBuscar);
+});
 
+  btnEditar.addEventListener("click", () => {
+  tituloBusqueda.textContent = "Editar Usuario";
+  tituloBusqueda.className = "mb-3 text-warning";
+  mostrarSeccion(seccionBuscar);
+});
+
+btnEliminar.addEventListener("click", () => {
+  tituloBusqueda.textContent = "Eliminar Usuario";
+  tituloBusqueda.className = "mb-3 text-danger";
+  mostrarSeccion(seccionBuscar);
+  modoEliminar = true;
+});
     tipoUsuario.addEventListener("change", () => {
       const tipo = tipoUsuario.value;
       camposExtra.innerHTML = "";
@@ -560,86 +568,71 @@ Gestión de Usuarios{% endblock %} {% block content %}
 
     // ------ FUNCIÓN PARA DETALLE ------
     function mostrarDetalle(u) {
-      valorNoControl = u.no_control || "";
-valorEquipo = u.equipo || "";
-      const botonEliminar = document.getElementById("boton-eliminar");
+    valorNoControl = u.no_control || "";
+    valorEquipo = u.equipo || "";
+    const botonEliminar = document.getElementById("boton-eliminar");
 
-      document.getElementById("editar_id").value = u.id_usuario;
-      document.getElementById("editar_nombre").value = u.nombres;
-      document.getElementById("editar_apellido_p").value = u.apellido_paterno;
-      document.getElementById("editar_apellido_m").value = u.apellido_materno;
-      document.getElementById("editar_tipo_usuario").value = u.tipo_usuario;
+    // --- LLENAR DETALLE ---
+    detalleUsuario.classList.remove("d-none");
 
-      editarCamposExtra.innerHTML = ""; // limpiar
+    document.getElementById("detalle-nombre").textContent =
+        `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
 
-      if (u.tipo_usuario === "alumno") {
-        editarCamposExtra.innerHTML = `
-    <div class="mb-3">
-      <label class="form-label">Número de Control</label>
-      <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
-    </div>`;
-      }
+    document.getElementById("detalle-id").textContent = "ID: " + u.id_usuario;
+    document.getElementById("detalle-tipo").textContent = "Tipo: " + u.tipo_usuario;
 
-      if (u.tipo_usuario === "representativo") {
-        editarCamposExtra.innerHTML = `
-    <div class="mb-3">
-      <label class="form-label">Número de Control</label>
-      <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Equipo</label>
-      <input type="text" class="form-control" name="equipo" value="${u.equipo}" required>
-    </div>`;
-      }
-      if (modoEliminar) {
-        botonEliminar.classList.remove("d-none");
-        document.getElementById("id_eliminar").value = u.id_usuario;
-      } else {
-        botonEliminar.classList.add("d-none");
-      }
-      detalleUsuario.classList.remove("d-none");
-
-      document.getElementById(
-        "detalle-nombre"
-      ).textContent = `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
-      document.getElementById("detalle-id").textContent = "ID: " + u.id_usuario;
-      document.getElementById("detalle-tipo").textContent =
-        "Tipo: " + u.tipo_usuario;
-      document.getElementById("detalle-foto").src =
+    document.getElementById("detalle-foto").src =
         u.foto || "https://via.placeholder.com/80";
 
-      // LLENAR FORMULARIO EDITAR
-      document.getElementById("seccion-editar").classList.remove("d-none");
-
-      document.getElementById("editar_id").value = u.id_usuario;
-      document.getElementById("editar_nombre").value = u.nombres;
-      document.getElementById("editar_apellido_p").value = u.apellido_paterno;
-      document.getElementById("editar_apellido_m").value = u.apellido_materno;
-      document.getElementById("editar_tipo").value = u.tipo_usuario;
-
-      const extra = document.getElementById("editar-campos-extra");
-      extra.innerHTML = "";
-
-      if (u.tipo_usuario === "alumno") {
-        extra.innerHTML = `
-      <div class="mb-3">
-        <label class="form-label">Número de Control</label>
-        <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
-      </div>`;
-      }
-
-      if (u.tipo_usuario === "representativo") {
-        extra.innerHTML = `
-      <div class="mb-3">
-        <label class="form-label">Número de Control</label>
-        <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Equipo</label>
-        <input type="text" class="form-control" name="equipo" value="${u.equipo}" required>
-      </div>`;
-      }
+    // --- MODO ELIMINAR ---
+    if (modoEliminar) {
+        botonEliminar.classList.remove("d-none");
+        document.getElementById("id_eliminar").value = u.id_usuario;
+    } else {
+        botonEliminar.classList.add("d-none");
     }
+
+    // --- FORMULARIO EDITAR SOLO SI ESTAMOS EN MODO EDITAR ---
+    const seccionEditar = document.getElementById("seccion-editar");
+
+    if (!modoEliminar && tituloBusqueda.textContent === "Editar Usuario") {
+        seccionEditar.classList.remove("d-none");
+
+        // Llenar formulario editar
+        document.getElementById("editar_id").value = u.id_usuario;
+        document.getElementById("editar_nombre").value = u.nombres;
+        document.getElementById("editar_apellido_p").value = u.apellido_paterno;
+        document.getElementById("editar_apellido_m").value = u.apellido_materno;
+        document.getElementById("editar_tipo_usuario").value = u.tipo_usuario;
+
+        const extra = document.getElementById("editar-campos-extra");
+        extra.innerHTML = "";
+
+        if (u.tipo_usuario === "alumno") {
+            extra.innerHTML = `
+                <div class="mb-3">
+                    <label class="form-label">Número de Control</label>
+                    <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
+                </div>`;
+        }
+
+        if (u.tipo_usuario === "representativo") {
+            extra.innerHTML = `
+                <div class="mb-3">
+                    <label class="form-label">Número de Control</label>
+                    <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Equipo</label>
+                    <input type="text" class="form-control" name="equipo" value="${u.equipo}" required>
+                </div>`;
+        }
+
+    } else {
+        // No mostrar el formulario editar
+        seccionEditar.classList.add("d-none");
+    }
+}
 
     // ------- AGREGAR USUARIO -------
     formAgregar.addEventListener("submit", async (e) => {
@@ -657,7 +650,7 @@ valorEquipo = u.equipo || "";
 
         if (data.success) {
           alerta.innerHTML = `
-          <div class="alert alert-success">Usuario agregado correctamente.</div>`;
+  <div class="alert alert-success">${data.mensaje}</div>`;
           formAgregar.reset();
           camposExtra.innerHTML = "";
         } else {
@@ -671,6 +664,58 @@ valorEquipo = u.equipo || "";
         </div>`;
       }
     });
+
+
+// --- SUBMIT PARA EDITAR ---
+document.getElementById("form-editar-usuario").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    let form = document.getElementById("form-editar-usuario");
+    let alerta = document.getElementById("alerta-editar");
+    let formData = new FormData(form);
+
+    try {
+        let response = await fetch("{% url 'gestion_usuarios' %}", {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        });
+
+        let data = await response.json();
+
+        if (data.success) {
+            alerta.innerHTML = `
+                <div class="alert alert-success">
+                    ${data.mensaje}
+                </div>
+            `;
+
+            // Ocultar formulario después de guardar
+            setTimeout(() => {
+                document.getElementById("seccion-editar").classList.add("d-none");
+                location.reload(); // si quieres refrescar tabla
+            }, 1200);
+
+        } else {
+            alerta.innerHTML = `
+                <div class="alert alert-danger">
+                    ${data.error}
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        alerta.innerHTML = `
+            <div class="alert alert-danger">
+                Error inesperado en el servidor.
+            </div>
+        `;
+    }
+});
+
+
 
     formEliminar.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -699,14 +744,11 @@ valorEquipo = u.equipo || "";
         const data = await response.json();
 
         if (data.success) {
-          alertaEliminar.innerHTML = `
-        <div class="alert alert-success">
-          ${data.mensaje}
-        </div>`;
           // Ocultar detalle y resultados
           document.getElementById("detalle-usuario").classList.add("d-none");
           resultados.style.display = "none";
           modoEliminar = false;
+          document.getElementById("form-buscar").dispatchEvent(new Event("submit"));
         } else {
           alertaEliminar.innerHTML = `
         <div class="alert alert-danger">
