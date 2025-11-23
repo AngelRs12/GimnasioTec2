@@ -70,10 +70,10 @@ def logout(request):
 
 #Backend
 
-def crear_usuario(request):   
-    return render(request, 'gym/crear_usuario.html')
+def administradores(request):   
+    return render(request, 'gym/administradores.html')
 
-def crear_usuario_admin(request):
+def crear_admin(request):
     if request.method == "POST":
         usuario = request.POST.get("usuario")
         password = request.POST.get("password")
@@ -85,11 +85,231 @@ def crear_usuario_admin(request):
             )
 
         # Ajusta a la vista a la que quieras regresar
-    return render(request, "gym/crear_usuario.html")
+    return render(request, "gym/administradores.html")
+
+def buscar_admin(request):
+    """
+    Busca administradores:
+     - Si no hay parámetros GET renderiza administradores.html.
+     - Parámetros aceptados (GET): id_admin (num) y usuario (texto).
+     - Devuelve JSON cuando la petición es AJAX; si no, renderiza template con resultados en contexto.
+    """
+    id_param = (request.GET.get("id_admin") or request.GET.get("id")) and (request.GET.get("id_admin") or request.GET.get("id"))
+    nombre = (request.GET.get("usuario") or request.GET.get("nombre") or "").strip()
+
+    # Si no hay criterios -> render
+    if not id_param and not nombre:
+        return render(request, "gym/administradores.html")
+
+    try:
+        with connection.cursor() as cursor:
+            if nombre:
+                cursor.execute(
+                    """
+                    SELECT
+                      row_number() OVER (ORDER BY "Usuario") AS id_admin,
+                      "Usuario" AS usuario
+                    FROM public."Usuarios_admin"
+                    WHERE "Usuario" ILIKE %s
+                    ORDER BY "Usuario"
+                    LIMIT 200;
+                    """,
+                    [f"%{nombre}%"]
+                )
+                rows = cursor.fetchall()
+            else:
+                # búsqueda por id_admin: usamos row_number() para generar ids estables según orden alfabético
+                try:
+                    id_int = int(id_param)
+                except Exception:
+                    rows = []
+                else:
+                    cursor.execute(
+                        """
+                        SELECT id_admin, usuario FROM (
+                          SELECT
+                            row_number() OVER (ORDER BY "Usuario") AS id_admin,
+                            "Usuario" AS usuario
+                          FROM public."Usuarios_admin"
+                          ORDER BY "Usuario"
+                        ) t WHERE t.id_admin = %s LIMIT 1;
+                        """,
+                        [id_int]
+                    )
+                    rows = cursor.fetchall()
+
+        resultados = [{"id_admin": r[0], "usuario": r[1]} for r in rows]
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True, "resultados": resultados})
+        else:
+            return render(request, "gym/administradores.html", {"resultados": resultados, "query_usuario": nombre, "query_id": id_param})
+
+    except Exception as e:
+        err = str(e)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": err}, status=500)
+        return render({"error": f"No fue posible realizar la búsqueda: {err}"})
+
+
+def eliminar_admin(request):
+    """
+    Elimina un administrador.
+    - POST con 'usuario' o 'id_admin'.
+    - Responde JSON si es AJAX, si no redirige/renderiza.
+    """
+    if request.method != "POST":
+        return redirect("administradores")
+
+    if "usuario_admin" not in request.session:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": "No autorizado"}, status=403)
+        messages.error(request, "Debes iniciar sesión como administrador.")
+        return redirect("sesion")
+
+    usuario = (request.POST.get("usuario") or "").strip()
+    id_param = request.POST.get("id_admin") or request.POST.get("id")
+
+    try:
+        with connection.cursor() as cursor:
+            # Si nos dieron id_admin, resolvemos el usuario
+            if id_param and not usuario:
+                try:
+                    id_int = int(id_param)
+                except ValueError:
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"success": False, "error": "ID inválido."}, status=400)
+                    return render(request, "gym/administradores.html", {"error": "ID inválido."})
+
+                cursor.execute(
+                    """
+                    SELECT usuario FROM (
+                      SELECT row_number() OVER (ORDER BY "Usuario") AS id_admin,
+                             "Usuario" AS usuario
+                      FROM public."Usuarios_admin" ORDER BY "Usuario"
+                    ) t WHERE t.id_admin = %s LIMIT 1;
+                    """,
+                    [id_int]
+                )
+                fila = cursor.fetchone()
+                if not fila:
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"success": False, "error": "Administrador no encontrado."}, status=404)
+                    return render(request, "gym/administradores.html", {"error": "Administrador no encontrado."})
+                usuario = fila[0]
+
+            if not usuario:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "Usuario a eliminar no proporcionado."}, status=400)
+                return render(request, "gym/administradores.html", {"error": "Usuario a eliminar no proporcionado."})
+
+            cursor.execute(
+                'DELETE FROM public."Usuarios_admin" WHERE "Usuario" = %s;',
+                [usuario]
+            )
+            if cursor.rowcount == 0:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "Administrador no encontrado."}, status=404)
+                return render(request, "gym/administradores.html", {"error": "Administrador no encontrado."})
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True, "mensaje": f"Administrador '{usuario}' eliminado correctamente."})
+        messages.success(request, f"Administrador '{usuario}' eliminado correctamente.")
+        return redirect("administradores")
+
+    except Exception as e:
+        err = str(e)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": err}, status=500)
+        return render(request, "gym/administradores.html", {"error": f"No fue posible eliminar el administrador: {err}"})
 
 
 
 
+
+
+
+
+
+def editar_admin(request):
+    """
+    Edita la información de un administrador.
+    - Acepta POST con:
+        - 'usuario' (nombre actual) o 'id_admin' (num) para identificar el registro
+        - 'password' nueva (requerida)
+    - Responde JSON si es AJAX, o redirige/renderiza otherwise.
+    """
+    if request.method != "POST":
+        return redirect("administradores")
+
+    if "usuario_admin" not in request.session:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": "No autorizado"}, status=403)
+        messages.error(request, "Debes iniciar sesión como administrador.")
+        return redirect("sesion")
+
+    usuario = (request.POST.get("usuario") or "").strip()
+    password = (request.POST.get("password") or "").strip()
+    id_param = request.POST.get("id_admin") or request.POST.get("id")
+
+    if not password:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": "La nueva contraseña es obligatoria."}, status=400)
+        return render(request, "gym/administradores.html", {"error": "La nueva contraseña es obligatoria."})
+
+    try:
+        with connection.cursor() as cursor:
+            # Si nos dieron id_admin, resolvemos el usuario correspondiente
+            if id_param and not usuario:
+                try:
+                    id_int = int(id_param)
+                except ValueError:
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"success": False, "error": "ID inválido."}, status=400)
+                    return render(request, "gym/administradores.html", {"error": "ID inválido."})
+
+                cursor.execute(
+                    """
+                    SELECT usuario FROM (
+                      SELECT row_number() OVER (ORDER BY "Usuario") AS id_admin,
+                             "Usuario" AS usuario
+                      FROM public."Usuarios_admin" ORDER BY "Usuario"
+                    ) t WHERE t.id_admin = %s LIMIT 1;
+                    """,
+                    [id_int]
+                )
+                fila = cursor.fetchone()
+                if not fila:
+                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                        return JsonResponse({"success": False, "error": "Administrador no encontrado."}, status=404)
+                    return render(request, "gym/administradores.html", {"error": "Administrador no encontrado."})
+                usuario = fila[0]
+
+            if not usuario:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "Usuario a editar no proporcionado."}, status=400)
+                return render(request, "gym/administradores.html", {"error": "Usuario a editar no proporcionado."})
+
+            # Actualizar contraseña
+            cursor.execute(
+                'UPDATE public."Usuarios_admin" SET "Password" = %s WHERE "Usuario" = %s;',
+                [password, usuario]
+            )
+            if cursor.rowcount == 0:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({"success": False, "error": "Administrador no encontrado."}, status=404)
+                return render(request, "gym/administradores.html", {"error": "Administrador no encontrado."})
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True, "mensaje": f"Contraseña de '{usuario}' actualizada correctamente."})
+        messages.success(request, f"Contraseña de '{usuario}' actualizada correctamente.")
+        return redirect("administradores")
+
+    except Exception as e:
+        err = str(e)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": err}, status=500)
+        return render(request, "gym/administradores.html", {"error": f"No fue posible editar el administrador: {err}"})
 
 def gestion_usuarios(request):
     if request.method == "POST":

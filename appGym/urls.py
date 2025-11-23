@@ -23,7 +23,9 @@ urlpatterns = [
     path('editar_observacion/', views.editar_observacion_view, name='editar_observacion'),
     path('eliminar_observacion/', views.eliminar_observacion_view, name='eliminar_observacion'),
     path("eliminar_usuario/", views.eliminar_usuario, name="eliminar_usuario"),
-   path('crear_usuario/', views.crear_usuario, name='crear_usuario'),
-  path('crear_usuario_admin/', views.crear_usuario_admin, name='crear_usuario_admin'),
-    
+   path('administradores/', views.administradores, name='administradores'),
+  path('crear_admin/', views.crear_admin, name='crear_admin'),
+     path('buscar_admin/', views.buscar_admin, name='buscar_admin'),
+      path('eliminar_admin/', views.eliminar_admin, name='eliminar_admin'),
+path('editar_admin/', views.editar_admin, name='editar_admin'),
 ]
