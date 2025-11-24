@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.contrib import messages
+from django.contrib.auth.hashers import make_password, check_password
 from django.http import JsonResponse
-# Create your views here.
+from django.contrib import messages
+
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
@@ -74,19 +76,52 @@ def logout(request):
 def administradores(request):   
     return render(request, 'gym/administradores.html')
 
+from django.contrib import messages
+
+from django.shortcuts import render
+from django.contrib import messages
+from django.db import IntegrityError, transaction
+from django.db import connection
+
 def crear_admin(request):
     if request.method == "POST":
-        usuario = request.POST.get("usuario")
-        password = request.POST.get("password")
+        usuario = (request.POST.get("usuario") or "").strip()
+        password = (request.POST.get("password") or "").strip()
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                'INSERT INTO public."Usuarios_admin" ("Usuario", "Password") VALUES (%s, %s);',
-                [usuario, password]
-            )
+        # Validación básica
+        if not usuario or not password:
+            messages.error(request, "Por favor complete todos los campos.")
+            return render(request, "gym/administradores.html")
 
-        # Ajusta a la vista a la que quieras regresar
+        try:
+            # Usamos una transacción para mayor seguridad
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        'INSERT INTO public."Usuarios_admin" ("Usuario", "Password") VALUES (%s, %s);',
+                        [usuario, password]
+                    )
+
+            messages.success(request, "Administrador creado correctamente.")
+        except IntegrityError as e:
+            # Manejo específico de llave duplicada (usuario ya existe)
+            messages.error(request, "No fue posible crear el administrador: el nombre de usuario ya existe.")
+        except Exception as e:
+            # Captura errores inesperados y registra/manda mensaje genérico
+            # Opcional: loggear 'e' con logging para debug
+            messages.error(request, f"No fue posible crear el administrador: {str(e)}")
+
+        # No redirigimos; renderizamos la misma plantilla para que el SweetAlert aparezca
+        return render(request, "gym/administradores.html")
+
+    # GET u otros métodos
     return render(request, "gym/administradores.html")
+
+    
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db import connection
 
 def buscar_admin(request):
     """
@@ -95,7 +130,9 @@ def buscar_admin(request):
      - Parámetros aceptados (GET): id_admin (num) y usuario (texto).
      - Devuelve JSON cuando la petición es AJAX; si no, renderiza template con resultados en contexto.
     """
-    id_param = (request.GET.get("id_admin") or request.GET.get("id")) and (request.GET.get("id_admin") or request.GET.get("id"))
+    # Obtener parámetros
+    id_param = request.GET.get("id_admin") or request.GET.get("id") or ""
+    id_param = id_param.strip()
     nombre = (request.GET.get("usuario") or request.GET.get("nombre") or "").strip()
 
     # Si no hay criterios -> render
@@ -103,12 +140,13 @@ def buscar_admin(request):
         return render(request, "gym/administradores.html")
 
     try:
+        rows = []
         with connection.cursor() as cursor:
             if nombre:
                 cursor.execute(
                     """
                     SELECT
-                      row_number() OVER (ORDER BY "Usuario") AS id_admin,
+                      "id_admin",
                       "Usuario" AS usuario
                     FROM public."Usuarios_admin"
                     WHERE "Usuario" ILIKE %s
@@ -118,39 +156,45 @@ def buscar_admin(request):
                     [f"%{nombre}%"]
                 )
                 rows = cursor.fetchall()
+
             else:
-                # búsqueda por id_admin: usamos row_number() para generar ids estables según orden alfabético
+                # búsqueda por id_admin: consultar directamente la columna id_admin
                 try:
                     id_int = int(id_param)
-                except Exception:
+                except (ValueError, TypeError):
                     rows = []
                 else:
                     cursor.execute(
                         """
-                        SELECT id_admin, usuario FROM (
-                          SELECT
-                            row_number() OVER (ORDER BY "Usuario") AS id_admin,
-                            "Usuario" AS usuario
-                          FROM public."Usuarios_admin"
-                          ORDER BY "Usuario"
-                        ) t WHERE t.id_admin = %s LIMIT 1;
+                        SELECT "id_admin", "Usuario"
+                        FROM public."Usuarios_admin"
+                        WHERE "id_admin" = %s
+                        LIMIT 1;
                         """,
                         [id_int]
                     )
                     rows = cursor.fetchall()
 
+        # Mapear resultados a diccionarios
         resultados = [{"id_admin": r[0], "usuario": r[1]} for r in rows]
 
+        # Respuesta AJAX o render normal
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"success": True, "resultados": resultados})
         else:
-            return render(request, "gym/administradores.html", {"resultados": resultados, "query_usuario": nombre, "query_id": id_param})
+            return render(request, "gym/administradores.html", {
+                "resultados": resultados,
+                "query_usuario": nombre,
+                "query_id": id_param
+            })
 
     except Exception as e:
         err = str(e)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"success": False, "error": err}, status=500)
-        return render({"error": f"No fue posible realizar la búsqueda: {err}"})
+        # Renderizar plantilla con mensaje de error en contexto
+        return render(request, "gym/administradores.html", {"error": f"No fue posible realizar la búsqueda: {err}"})
+
 
 
 def eliminar_admin(request):
