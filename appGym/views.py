@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 # Create your views here.
 from django.shortcuts import render
+from django.views.decorators.http import require_POST
 
 def index(request):
     return render(request, 'gym/index.html')
@@ -542,3 +543,92 @@ def eliminar_usuario(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
     return JsonResponse({"success": False, "error": "Método no permitido."})
+
+def crear_membresia(request):
+    if request.method != "POST":
+        return JsonResponse({
+            "status": "error",
+            "message": "Método inválido, use POST"
+        }, status=400)
+
+    nombre = request.POST.get("nombre_tipo")
+    duracion = request.POST.get("duracion")
+    costo = request.POST.get("costo_tipo")
+
+    if not nombre or not duracion or not costo:
+        return JsonResponse({
+            "status": "error",
+            "message": "Faltan campos obligatorios"
+        }, status=400)
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT insertar_membresia_general(%s, %s, %s);",
+                [nombre, duracion, costo]
+            )
+
+        return JsonResponse({
+            "status": "success",
+            "message": f"Membresía '{nombre}' creada correctamente"
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e)
+        }, status=400)
+        
+def obtener_membresias(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM obtener_membresias_general();")
+        rows = cursor.fetchall()
+
+    membresias = []
+    for row in rows:
+        membresias.append({
+            "id": row[0],
+            "nombre": row[1],
+            "duracion": row[2],
+            "costo": row[3],
+        })
+
+    return JsonResponse({
+        "status": "ok",
+        "data": membresias
+    })
+    
+@require_POST    
+def editar_membresia(request):
+    nombre = request.POST.get("nombre")
+    duracion = request.POST.get("duracion")
+    costo = request.POST.get("costo")
+
+    if not all([nombre, duracion, costo]):
+        return JsonResponse({
+            "status": "error",
+            "message": "Faltan parámetros."
+        })
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT editar_membresia_por_nombre(%s, %s, %s);",
+            [nombre, duracion, costo]
+        )
+        result = cursor.fetchone()[0]
+
+    return JsonResponse(result)
+
+@require_POST
+def eliminar_membresia(request):
+    nombre = request.POST.get("nombre")
+    print(request.POST)
+
+    if not nombre:
+        return JsonResponse({"status": "error", "message": "Nombre requerido."})
+
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT eliminar_membresia_por_nombre(%s);", [nombre])
+        result = cursor.fetchone()[0]  # El JSON devuelto por la función
+
+    return JsonResponse(result)

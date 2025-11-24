@@ -1,123 +1,366 @@
-{% extends 'gym/base.html' %}
-{% load static bootstrap5 %}
-
-{% block title %}Gestión de Membresías{% endblock %}
-
-{% block content %}
+{% extends 'gym/base.html' %} {% load static bootstrap5 %} 
+{% block title%}
+Gestión de Membresías
+{% endblock %}
+ {% block content %}
 <div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-10 col-lg-8">
-      <div class="card shadow">
-        <div class="card-header bg-dark text-white text-center">
-          <h4 class="mb-0">Gestión de Membresías</h4>
+  <div class="row g-4">
+    <div class="col-lg-6 col-md-12">
+      <div class="card shadow h-100">
+        <div class="card-header fondo text-white text-center">
+          <h4 class="mb-0">Tipos de Membresía</h4>
         </div>
+
         <div class="card-body">
-          <!-- Formulario de membresía -->
-          <form method="POST" id="membresia-form">
+          <div id="alert-tipo-container"></div>
+
+          <form method="POST" id="tipo-form">
             {% csrf_token %}
-            
-            <!-- Tipo de acción -->
+
+            <!-- Nombre tipo -->
             <div class="mb-3">
-              <label for="accion" class="form-label">Acción</label>
-              <select name="accion" id="accion" class="form-select" required>
-                <option value="" selected disabled>Seleccione una acción</option>
-                <option value="contratar">Contratar membresía</option>
-                <option value="editar">Editar membresía</option>
-                <option value="cancelar">Cancelar membresía</option>
-                <option value="buscar">Buscar usuarios con membresía</option>
+              <label for="nombre_tipo" class="form-label">Nombre</label>
+              <input
+                type="text"
+                class="form-control"
+                id="nombre_tipo"
+                name="nombre_tipo"
+                placeholder="Mensual, Anual, Premium"
+                required
+              />
+            </div>
+
+            <!-- Duración -->
+            <div class="mb-3">
+              <label for="duracion" class="form-label">Duración (días)</label>
+              <input
+                type="number"
+                class="form-control"
+                id="duracion"
+                name="duracion"
+                placeholder="Ej: 30, 90, 365"
+                required
+              />
+            </div>
+
+            <!-- Costo -->
+            <div class="mb-3">
+              <label for="costo_tipo" class="form-label">Costo</label>
+              <input
+                type="number"
+                class="form-control"
+                id="costo_tipo"
+                name="costo_tipo"
+                placeholder="Ej: 200"
+                required
+              />
+            </div>
+
+            <div class="text-center">
+              <button type="submit" class="btn fondo text-white w-100">
+                Guardar Tipo de Membresía
+              </button>
+              <p class="text-muted mt-2">Membresías existentes</p>
+            </div>
+          </form>
+        </div>
+
+        <div class="card-footer p-0">
+          <div class="accordion" id="accordionTipos">
+            <p class="text-center text-muted my-2">Cargando tipos...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 col-md-12">
+      <div class="card shadow h-100">
+        <div class="card-header fondo text-white text-center">
+          <h4 class="mb-0">Asignar Membresía</h4>
+        </div>
+
+        <div class="card-body">
+          <div id="alert-asignacion-container"></div>
+
+          <form method="POST" id="asignacion-form">
+            {% csrf_token %}
+
+            <div class="mb-3 position-relative">
+              <label for="usuario" class="form-label">Usuario</label>
+              <input
+                type="text"
+                class="form-control"
+                id="usuario"
+                name="usuario"
+                placeholder="Buscar usuario..."
+                autocomplete="off"
+                required
+              />
+              <div
+                id="sugerencias"
+                class="list-group position-absolute w-100 shadow"
+                style="z-index: 10; display: none"
+              ></div>
+            </div>
+            <input type="hidden" id="id_usuario" name="id_usuario" />
+
+            <div class="mb-3">
+              <label for="tipo_membresia" class="form-label"
+                >Tipo de Membresía</label
+              >
+              <select
+                id="tipo_membresia"
+                name="tipo_membresia"
+                class="form-select"
+                required
+              >
+                <option value="" disabled selected>Seleccione</option>
+                {% for tipo in tipos %}
+                <option value="{{ tipo.id }}">
+                  {{ tipo.nombre }} — {{ tipo.duracion }} días — ${{ tipo.costo
+                  }}
+                </option>
+                {% endfor %}
               </select>
             </div>
 
-            <!-- No. Membresía -->
-            <div class="mb-3">
-              <label for="no_membresia" class="form-label">No. de Membresía</label>
-              <input type="number" class="form-control" id="no_membresia" name="no_membresia" placeholder="Ingrese número de membresía">
+            <div class="row g-2 mb-3">
+              <div class="col">
+                <label for="fecha_inicio" class="form-label">Inicio</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="fecha_inicio"
+                  name="fecha_inicio"
+                  required
+                />
+              </div>
+              <div class="col">
+                <label for="fecha_fin" class="form-label">Fin</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="fecha_fin"
+                  name="fecha_fin"
+                  required
+                />
+              </div>
             </div>
 
-            <!-- Usuario relacionado -->
-            <div class="mb-3 position-relative">
-              <label for="usuario" class="form-label">Usuario</label>
-              <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Escriba el nombre del usuario" autocomplete="off">
-              <div id="sugerencias" class="list-group position-absolute w-100 shadow" style="z-index: 10; display: none;"></div>
-            </div>
-
-            <!-- ID Usuario -->
-            <div class="mb-3">
-              <label for="id_usuario" class="form-label">ID Usuario</label>
-              <input type="number" class="form-control" id="id_usuario" name="id_usuario" placeholder="Ingrese ID del usuario">
-            </div>
-
-            <!-- Fecha inicial -->
-            <div class="mb-3">
-              <label for="fecha_inicial" class="form-label">Fecha Inicial</label>
-              <input type="date" class="form-control" id="fecha_inicial" name="fecha_inicial">
-            </div>
-
-            <!-- Fecha final -->
-            <div class="mb-3">
-              <label for="fecha_final" class="form-label">Fecha Final</label>
-              <input type="date" class="form-control" id="fecha_final" name="fecha_final">
-            </div>
-
-            <!-- Costo fijo -->
-            <div class="mb-3">
-              <label for="costo" class="form-label">Costo de membresía</label>
-              <input type="text" class="form-control" id="costo" name="costo" value="$200.00" readonly>
-            </div>
-
-            <!-- Botón principal -->
             <div class="text-center">
-              <button type="submit" class="btn btn-dark w-100">Ejecutar Acción</button>
+              <button type="submit" class="btn fondo text-white w-100">
+                Asignar Membresía
+              </button>
+              <p class="text-muted mt-2">Usuarios con membresía</p>
             </div>
           </form>
+        </div>
+
+        <div class="card-footer p-0">
+          <div class="accordion" id="accordionAsignaciones">
+            <p class="text-center text-muted my-2">Cargando asignaciones...</p>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Script para sugerencias de usuario -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const inputUsuario = document.getElementById("usuario");
-  const sugerencias = document.getElementById("sugerencias");
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
 
-  inputUsuario.addEventListener("input", async () => {
-    const query = inputUsuario.value.trim();
-    if (query.length < 2) {
-      sugerencias.style.display = "none";
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Confirmar eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p id="modalMensaje"></p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+
+        <button id="btnAceptarEliminar" class="btn btn-danger">
+          Eliminar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+
+  let membresiaAEliminar = null;
+let modalEliminar = null;
+document.addEventListener("DOMContentLoaded", () => {
+  modalEliminar = new bootstrap.Modal(document.getElementById("modalEliminar"));
+  cargarMembresias();
+});
+  document.getElementById("tipo-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const alertBox = document.getElementById("alert-tipo-container");
+
+  try {
+    const res = await fetch("{% url 'crear_membresia' %}", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (data.status === "success") {
+      alertBox.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+      e.target.reset();
+      cargarMembresias(); // refrescar listado
+    } else {
+      alertBox.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+    }
+
+  } catch (error) {
+    alertBox.innerHTML = `<div class="alert alert-danger">Error al conectar con el servidor.</div>`;
+  }
+});
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie("csrftoken");
+
+  async function cargarMembresias() {
+    const container = document.getElementById("accordionTipos");
+    container.innerHTML = `<p class="text-center text-muted my-2">Cargando...</p>`;
+
+    const res = await fetch("{% url 'obtener_membresias' %}");
+    const data = await res.json();
+
+    if (!data.data.length) {
+      container.innerHTML = `<p class="text-center text-muted my-2">No hay membresías registradas.</p>`;
       return;
     }
 
-    // Solicita coincidencias al backend
-    const response = await fetch(`/buscar_usuarios/?q=${query}`);
-    const data = await response.json();
+    let html = "";
+    data.data.forEach((m, idx) => {
+      html += `
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="m-${idx}">
+          <button class="accordion-button collapsed" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#item-${idx}">
+            <strong>${m.nombre}</strong>
+          </button>
+        </h2>
 
-    sugerencias.innerHTML = "";
-    if (data.length > 0) {
-      data.forEach(usuario => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "list-group-item list-group-item-action";
-        item.textContent = `${usuario.nombre} ${usuario.apellido_paterno} ${usuario.apellido_materno}`;
-        item.addEventListener("click", () => {
-          inputUsuario.value = `${usuario.nombre} ${usuario.apellido_paterno}`;
-          document.getElementById("id_usuario").value = usuario.id;
-          sugerencias.style.display = "none";
-        });
-        sugerencias.appendChild(item);
-      });
-      sugerencias.style.display = "block";
-    } else {
-      sugerencias.style.display = "none";
-    }
+        <div id="item-${idx}" class="accordion-collapse collapse"
+          data-bs-parent="#accordionTipos">
+
+          <div class="accordion-body">
+            <label>Duración (días)</label>
+            <input type="number" class="form-control mb-2"
+              id="dur-${m.nombre}" value="${m.duracion}">
+
+            <label>Costo</label>
+            <input type="number" class="form-control mb-2"
+              id="cost-${m.nombre}" value="${m.costo}">
+
+            <div class="d-flex gap-2 mt-2">
+              <button class="btn btn-warning w-50"
+                onclick="editarMembresia('${m.nombre}')">
+                Editar
+              </button>
+
+              <button class="btn btn-danger w-50"
+                onclick="eliminarMembresia('${m.nombre}')">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+
+    container.innerHTML = html;
+  }
+
+  async function editarMembresia(nombre) {
+    const duracion = document.getElementById(`dur-${nombre}`).value;
+    const costo = document.getElementById(`cost-${nombre}`).value;
+
+    const form = new FormData();
+    form.append("nombre", nombre);
+    form.append("duracion", duracion);
+    form.append("costo", costo);
+
+    const res = await fetch("{% url 'editar_membresia' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken,
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: form,
+    });
+
+    const data = await res.json();
+
+    mostrarAlertaTipo(data.message, data.status);
+    cargarMembresias();
+  }
+
+async function eliminarMembresia(nombre) {
+  membresiaAEliminar = nombre;
+  document.getElementById("modalMensaje").innerText =
+    `¿Seguro que deseas eliminar la membresía "${nombre}"?`;
+  modalEliminar.show();
+}
+
+
+  function mostrarAlertaTipo(message, status = "success") {
+    const container = document.getElementById("alert-tipo-container");
+
+    const color = status === "error" ? "danger" : "success";
+
+    container.innerHTML = `
+    <div class="alert alert-${color} alert-dismissible fade show" role="alert">
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  `;
+  }
+document.getElementById("btnAceptarEliminar").addEventListener("click", async () => {
+
+  const form = new FormData();
+  form.append("nombre", membresiaAEliminar);
+
+  const res = await fetch("{% url 'eliminar_membresia' %}", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrftoken,
+      "X-Requested-With": "XMLHttpRequest",
+    },
+    body: form,
   });
 
-  document.addEventListener("click", (e) => {
-    if (!sugerencias.contains(e.target) && e.target !== inputUsuario) {
-      sugerencias.style.display = "none";
-    }
-  });
+  const data = await res.json();
+  modalEliminar.hide();
+
+  mostrarAlertaTipo(data.message, data.status);
+  cargarMembresias();
 });
+  document.addEventListener("DOMContentLoaded", cargarMembresias);
+
 </script>
 {% endblock %}
