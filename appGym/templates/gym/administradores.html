@@ -147,7 +147,7 @@
 <div id="seccion-eliminar" class="d-none">
   <h5 class="text-center mb-4">Eliminar Administrador</h5>
 
-  <form id="formEliminarAdmin" method="POST" action="{% url 'eliminar_admin' %}">
+  <form id="formEliminarAdmin" method="POST" action="{% url 'eliminar_admin' %}?section=eliminar">
     {% csrf_token %}
 
     <div class="mb-3">
@@ -168,10 +168,9 @@
   <div id="alerta-eliminar-admin" class="mt-3"></div>
 </div>
 
-</div>
-
 <!-- JS PARA MOSTRAR/OCULTAR SECCIONES -->
 <script>
+  // Referencias a secciones
   const secciones = {
     agregar: document.getElementById("seccion-agregar"),
     buscar: document.getElementById("seccion-buscar"),
@@ -179,17 +178,128 @@
     eliminar: document.getElementById("seccion-eliminar"),
   };
 
-  function mostrarSolo(id) {
+  // Botones del menú
+  const btnAgregar = document.getElementById("btn-agregar");
+  const btnBuscar = document.getElementById("btn-buscar");
+  const btnEditar = document.getElementById("btn-editar");
+  const btnEliminar = document.getElementById("btn-eliminar");
+  const botones = [btnAgregar, btnBuscar, btnEditar, btnEliminar];
+
+  // Estado de modo eliminar (si se activa al entrar a eliminar)
+  let modoEliminar = false;
+
+  /**
+   * mostrarSolo:
+   *  - id: "agregar" | "buscar" | "editar" | "eliminar"
+   *  - titleText (opcional): texto que se mostrará en el h5 de la sección
+   *  - titleClass (opcional): clase(s) que se asignarán al h5 (por ejemplo "mb-3 text-primary")
+   */
+  function mostrarSolo(id, titleText = null, titleClass = null) {
+    // ocultar todas las secciones
     Object.values(secciones).forEach(sec => sec.classList.add("d-none"));
-    secciones[id].classList.remove("d-none");
+
+    // mostrar la solicitada si existe
+    const target = secciones[id];
+    if (!target) return;
+
+    target.classList.remove("d-none");
+
+    // manejar título interno (si hay un h5 dentro de la sección)
+    const h5 = target.querySelector("h5");
+    if (h5) {
+      if (titleText !== null) h5.textContent = titleText;
+      if (titleClass !== null) h5.className = titleClass;
+    }
+
+    // ocultar detalles/otros elementos que ya no aplican (si existen)
+    const detalleUsuario = document.getElementById("detalle-usuario");
+    if (detalleUsuario) detalleUsuario.classList.add("d-none");
+
+    const resultados = document.querySelectorAll(".resultados, .table, .card.mt-4");
+    resultados.forEach(el => {
+      // si el elemento tiene style, esconderlo; si no, añadir clase d-none
+      if (el.style) el.style.display = "none";
+      el.classList.add("d-none");
+    });
+
+    // resaltar botón activo
+    botones.forEach(b => b.classList.remove("active"));
+    switch (id) {
+      case "agregar": btnAgregar.classList.add("active"); modoEliminar = false; break;
+      case "buscar":  btnBuscar.classList.add("active"); modoEliminar = false; break;
+      case "editar":  btnEditar.classList.add("active"); modoEliminar = false; break;
+      case "eliminar": btnEliminar.classList.add("active"); modoEliminar = true; break;
+    }
   }
 
-  document.getElementById("btn-agregar").onclick = () => mostrarSolo("agregar");
-  document.getElementById("btn-buscar").onclick = () => mostrarSolo("buscar");
-  document.getElementById("btn-editar").onclick = () => mostrarSolo("editar");
-  document.getElementById("btn-eliminar").onclick = () => mostrarSolo("eliminar");
+  // Inicial: mostrar sección AGREGAR (la misma que tenías por defecto)
+  mostrarSolo("agregar");
 
-  
+  // Asociar eventos a botones (siguiendo tu ejemplo de textos y colores)
+  btnAgregar.addEventListener("click", () => {
+    mostrarSolo("agregar");
+  });
+
+  btnBuscar.addEventListener("click", () => {
+    mostrarSolo("buscar");
+  });
+
+  btnEditar.addEventListener("click", () => {
+    // reutilizamos la sección buscar para editar, cambiando título y estilo
+    mostrarSolo("editar");
+  });
+
+  btnEliminar.addEventListener("click", () => {
+    // activar el modo eliminar y mostrar la sección eliminar
+    mostrarSolo("eliminar");
+    modoEliminar = true;
+  });
+
+  // (Opcional) si quieres que al cargar la página se muestre la sección buscada cuando hay querys:
+  document.addEventListener("DOMContentLoaded", function () {
+    const qId = "{{ query_id|default:'' }}".trim();
+    const qUsuario = "{{ query_usuario|default:'' }}".trim();
+    if (qId || qUsuario) {
+      // si había una búsqueda previa, mostrar la sección de búsqueda y mantener los valores
+      mostrarSolo("buscar", "Buscar Administrador", "editar", "eliminar", "mb-3 text-primary text-center");
+      // también eliminar el display: none que pudiera haberse aplicado a resultados por el script
+      const resultadosEls = document.querySelectorAll(".resultados, .table, .card.mt-4");
+      resultadosEls.forEach(el => {
+        el.classList.remove("d-none");
+        el.style.display = "";
+      });
+    }
+  });
+</script>
+<script>
+  (function () {
+    // Esperar DOM
+    document.addEventListener("DOMContentLoaded", function () {
+      const btnConfirmar = document.getElementById("btnConfirmarEliminar");
+      const formEliminar = document.getElementById("formEliminarAdmin");
+      const modalEl = document.getElementById("confirmarEliminarModal");
+
+      if (!btnConfirmar || !formEliminar || !modalEl) return;
+
+      btnConfirmar.addEventListener("click", function () {
+        // opcional: validación rápida antes de enviar
+        const usuarioInput = formEliminar.querySelector('input[name="usuario"]');
+        if (!usuarioInput || !usuarioInput.value.trim()) {
+          // Si no hay usuario, mostrar alerta dentro de la sección
+          const alerta = document.getElementById("alerta-eliminar-admin");
+          alerta.innerHTML = '<div class="alert alert-danger">Por favor escribe el nombre de usuario a eliminar.</div>';
+          return;
+        }
+
+        // cerrar modal para mejor UX
+        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modalInstance.hide();
+
+        // enviar el formulario (POST) — CSRF ya está en el form
+        formEliminar.submit();
+      });
+    });
+  })();
 </script>
 
 {% endblock %}

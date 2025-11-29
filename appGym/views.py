@@ -3,10 +3,12 @@ from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.http import JsonResponse
-from django.contrib import messages
-
-from django.shortcuts import render
+from django.db import IntegrityError, transaction
 from django.views.decorators.http import require_POST
+import io
+import base64
+from django.http import HttpResponse
+
 
 def index(request):
     return render(request, 'gym/index.html')
@@ -71,17 +73,11 @@ def logout(request):
     request.session.flush()
     return redirect("index")  # Ajusta a tu vista principal
 
-#Backend
 
 def administradores(request):   
     return render(request, 'gym/administradores.html')
 
-from django.contrib import messages
 
-from django.shortcuts import render
-from django.contrib import messages
-from django.db import IntegrityError, transaction
-from django.db import connection
 
 def crear_admin(request):
     if request.method == "POST":
@@ -119,9 +115,7 @@ def crear_admin(request):
 
     
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.db import connection
+
 
 def buscar_admin(request):
     """
@@ -136,7 +130,8 @@ def buscar_admin(request):
     nombre = (request.GET.get("usuario") or request.GET.get("nombre") or "").strip()
 
     # Si no hay criterios -> render
-    if not id_param and not nombre:
+    if not id_param and not nombre: 
+                    
         return render(request, "gym/administradores.html")
 
     try:
@@ -676,3 +671,178 @@ def eliminar_membresia(request):
         result = cursor.fetchone()[0]  # El JSON devuelto por la función
 
     return JsonResponse(result)
+
+
+
+
+
+
+def _fetch_users_rows():
+    """
+    Ejecuta exactamente la consulta SQL que indicaste y devuelve las filas.
+    Cada fila: (id_usuario, nombres, apellido_paterno, apellido_materno, tipo)
+    """
+    query = """
+       SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno,
+              COALESCE(v.tipo, 'desconocido') AS tipo
+       FROM public.usuario u
+       LEFT JOIN public.vista_tipo_usuario v ON v.id_usuario = u.id_usuario
+       ORDER BY u.id_usuario;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    return rows
+
+def _build_counts_from_rows(rows):
+    """
+    Recibe filas (tuplas) y devuelve:
+      - labels: lista de etiquetas (ordenadas)
+      - data: lista de conteos (enteros)
+      - resumen: lista de dicts para la plantilla [{tipo, conteo}, ...]
+      - total: suma de conteos
+    Normaliza tipos y mantiene cualquier tipo inesperado al final.
+    """
+    # contar tipos tal cual vienen (minúsculas tal vez)
+    counts = {}
+    for r in rows:
+        tipo = (r[4] or 'desconocido')
+        counts[tipo] = counts.get(tipo, 0) + 1
+
+    # Orden preferido (ajusta si tus tipos en BD usan otras cadenas)
+    expected_order = ['alumno', 'representativo', 'externo']
+    friendly = {'alumno': 'Alumno', 'representativo': 'Representativo', 'externo': 'Externo', 'desconocido': 'Desconocido'}
+
+    labels = []
+    data = []
+    # Agregar en orden esperado
+    for k in expected_order:
+        labels.append(friendly.get(k, k.capitalize()))
+        data.append(int(counts.get(k, 0)))
+
+    # Añadir tipos extra que no estén en expected_order (mantener consistencia)
+    others = [k for k in counts.keys() if k not in expected_order]
+    for k in sorted(others):
+        labels.append(friendly.get(k, k.capitalize()))
+        data.append(int(counts.get(k, 0)))
+
+    resumen = [{"tipo": labels[i], "conteo": data[i]} for i in range(len(labels))]
+    total = sum(data)
+    return labels, data, resumen, total
+
+def reportes_view(request):
+    """
+    Renderiza la plantilla reportes.html con labels_json / data_json derivados
+    directamente de la consulta SQL solicitada.
+    """
+    try:
+        rows = _fetch_users_rows()
+        labels, data, resumen, total = _build_counts_from_rows(rows)
+    except Exception as e:
+        return render(request, "gym/reportes.html", {"error": f"Error al consultar la BD: {e}"})
+
+    context = {
+        "labels_json": json.dumps(labels),
+        "data_json": json.dumps(data),
+        "total": total,
+        "resumen": resumen,
+    }
+    return render(request, "gym/reportes.html", context)
+
+def reportes_data(request):
+    """
+    Endpoint JSON que devuelve los conteos actuales (útil para refrescar las gráficas).
+    Respuesta: {"labels": [...], "data": [...], "total": N}
+    """
+    try:
+        rows = _fetch_users_rows()
+        labels, data, resumen, total = _build_counts_from_rows(rows)
+        return JsonResponse({"labels": labels, "data": data, "total": total})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+
+def generar_reporte_excel(request):
+    """
+    Genera y devuelve un archivo Excel (openpyxl) con:
+      - Hoja "Todos" (todos los usuarios con tipo)
+      - Hoja por cada tipo encontrada (Alumno, Representativo, Externo, ...)
+      - Hoja "Resumen" con conteos por tipo
+    Usa la vista vista_tipo_usuario y la tabla usuario de tu esquema.
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno,
+                       COALESCE(v.tipo, 'desconocido') AS tipo
+                FROM public.usuario u
+                LEFT JOIN public.vista_tipo_usuario v ON v.id_usuario = u.id_usuario
+                ORDER BY u.id_usuario;
+            """)
+            rows = cursor.fetchall()
+    except Exception as e:
+        return HttpResponse(f"Error al consultar la base de datos: {e}", status=500)
+
+    # Agrupar por tipo
+    tipos_map = {}
+    for r in rows:
+        tipo = r[4] or 'desconocido'
+        tipos_map.setdefault(tipo, []).append(r)
+
+    # Crear workbook
+    wb = Workbook()
+    ws_all = wb.active
+    ws_all.title = "Todos"
+
+    headers = ["id_usuario", "nombres", "apellido_paterno", "apellido_materno", "tipo"]
+    ws_all.append(headers)
+    for r in rows:
+        ws_all.append(list(r))
+
+    # Ajustar anchos sencillos en hoja 'Todos'
+    for i, _ in enumerate(headers, start=1):
+        col = get_column_letter(i)
+        maxlen = 0
+        for cell in ws_all[col]:
+            cell_value = '' if cell.value is None else str(cell.value)
+            if len(cell_value) > maxlen:
+                maxlen = len(cell_value)
+        ws_all.column_dimensions[col].width = min(maxlen + 2, 50)
+
+    # Crear hojas por tipo
+    for tipo, filas in tipos_map.items():
+        sheet_name = str(tipo)[:31]
+        ws = wb.create_sheet(title=sheet_name)
+        ws.append(headers)
+        for fr in filas:
+            ws.append(list(fr))
+
+        # Ajustar anchos en esta hoja
+        for i, _ in enumerate(headers, start=1):
+            col = get_column_letter(i)
+            maxlen = 0
+            for row in filas:
+                val = '' if row[i-1] is None else str(row[i-1])
+                if len(val) > maxlen:
+                    maxlen = len(val)
+            ws.column_dimensions[col].width = min(maxlen + 2, 50)
+
+    # Hoja resumen
+    ws_res = wb.create_sheet(title="Resumen")
+    ws_res.append(["Tipo", "Conteo"])
+    for tipo, filas in tipos_map.items():
+        ws_res.append([tipo, len(filas)])
+
+    # Guardar a BytesIO y devolver
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = HttpResponse(
+        buf.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response['Content-Disposition'] = 'attachment; filename="reporte_usuarios.xlsx"'
+    return response
+

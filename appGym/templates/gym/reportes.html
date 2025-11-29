@@ -1,7 +1,234 @@
 {% extends 'gym/base.html' %}
 {% load static %}
-{% block title %}Inicio | Gimnasio{% endblock %}
+
+{% block title %}Reportes | Gimnasio{% endblock %}
 
 {% block content %}
-<h1>Teeest<h1>
+<style>
+  :root {
+    --azul-itcj: hsl(219,57%,24%);
+    --azul-itcj-light: hsl(219,57%,34%);
+  }
+  .report-card { border-radius: 12px; border: 0; }
+  .report-header { background: linear-gradient(135deg, var(--azul-itcj), var(--azul-itcj-light)); color: #fff; padding: 1rem; }
+  .chart-wrap { background: #fff; padding: 1rem; border-radius: 10px; box-shadow: 0 8px 20px rgba(20, 30, 60, 0.06); min-height: 320px; display: flex; align-items: center; justify-content: center; }
+  .download-btn { background: linear-gradient(90deg, #4b6cb7, #182848); color: #fff; border: 0; }
+  @media (max-width: 767px) { .chart-wrap { min-height: 260px; } }
+
+  /* Ajuste para el histograma */
+  .histogram-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+  #histogramChart {
+    width: 100% !important; /* Asegura que el gráfico ocupe todo el espacio disponible */
+    max-width: 100%; /* Evita que el gráfico exceda el contenedor */
+    height: 300px; /* Ajusta el tamaño del gráfico */
+  }
+</style>
+
+<div class="container mt-5">
+  <div class="card report-card shadow-lg">
+    <div class="card-header report-header text-center">
+      <h3 class="mb-0">Reportes de Usuarios</h3>
+      <p class="mt-2">Gráficas basadas en los usuarios registrados en el gimnasio.</p>
+    </div>
+
+    <div class="card-body p-4">
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <div class="d-flex justify-content-end mb-3">
+        <button id="btnRefresh" class="btn btn-sm btn-outline-primary me-2">Actualizar</button>
+        <a href="{% url 'generar_reporte_excel' %}" class="btn btn-sm download-btn">Descargar Excel</a>
+      </div>
+
+      <div class="row g-4">
+        <!-- Grafico de Distribución por Tipo -->
+        <div class="col-md-6">
+          <div class="chart-wrap">
+            <div style="width:100%;">
+              <h5 class="fw-bold text-center mb-3">Distribución por tipo (porcentaje)</h5>
+              <canvas id="pieChart" style="max-height:260px;"></canvas>
+              <div id="pieNoData" class="text-center text-muted" style="display:none;">No hay datos para mostrar.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grafico de Conteo por Tipo -->
+        <div class="col-md-6">
+          <div class="chart-wrap">
+            <div style="width:100%;">
+              <h5 class="fw-bold text-center mb-3">Conteo por tipo</h5>
+              <canvas id="barChart" style="max-height:260px;"></canvas>
+              <div id="barNoData" class="text-center text-muted" style="display:none;">No hay datos para mostrar.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen rápido de usuarios -->
+        <div class="col-12 mt-4">
+          <div class="card p-3 shadow-sm">
+            <h5 class="fw-bold">Resumen rápido de usuarios</h5>
+            <p>Total de usuarios: <strong id="totalUsers">{{ total|default:0 }}</strong></p>
+            <div class="row g-2" id="resumenContainer">
+              {% for r in resumen %}
+                <div class="col-md-4 resumen-item" data-tipo="{{ r.tipo }}">
+                  <div class="p-2 border rounded text-center">
+                    <strong>{{ r.tipo }}</strong>
+                    <div class="text-muted">{{ r.conteo }} usuarios</div>
+                  </div>
+                </div>
+              {% empty %}
+                <div class="col-12 text-center text-muted">No hay datos para mostrar.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js (único include) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+(function () {
+  let labels = [];
+  let dataValues = [];
+  let ingresosLabels = [];
+  let ingresosValues = [];
+
+  try {
+    labels = JSON.parse('{{ labels_json|default:"[]"|escapejs }}');
+    dataValues = JSON.parse('{{ data_json|default:"[]"|escapejs }}').map(v => Number(v) || 0);
+  } catch(e) { labels = []; dataValues = []; }
+
+  try {
+    ingresosLabels = JSON.parse('{{ ingresos_labels_json|default:"[]"|escapejs }}');
+    ingresosValues = JSON.parse('{{ ingresos_values_json|default:"[]"|escapejs }}').map(v => Number(v) || 0);
+  } catch(e) { ingresosLabels = []; ingresosValues = []; }
+
+  const pieCanvas = document.getElementById('pieChart');
+  const barCanvas = document.getElementById('barChart');
+  const histogramCanvas = document.getElementById('histogramChart');
+  const totalEl = document.getElementById('totalUsers');
+  const resumenContainer = document.getElementById('resumenContainer');
+
+  const COLORS = [
+    "hsl(219,57%,24%)",
+    "hsl(219,57%,34%)",
+    "hsl(219,57%,48%)",
+    "hsl(200,60%,40%)",
+    "hsl(260,45%,45%)"
+  ];
+  const BG_COLORS = COLORS.map(c => c.replace('hsl','hsla').replace(')',',0.85)'));
+
+  function renderCharts() {
+    const total = dataValues.reduce((a,b) => a + b, 0);
+
+    if (total === 0) {
+      if (document.getElementById('pieNoData')) document.getElementById('pieNoData').style.display = 'block';
+      if (document.getElementById('barNoData')) document.getElementById('barNoData').style.display = 'block';
+      if (pieCanvas) pieCanvas.style.display = 'none';
+      if (barCanvas) barCanvas.style.display = 'none';
+      if (totalEl) totalEl.textContent = 0;
+      return;
+    } else {
+      if (document.getElementById('pieNoData')) document.getElementById('pieNoData').style.display = 'none';
+      if (document.getElementById('barNoData')) document.getElementById('barNoData').style.display = 'none';
+      if (pieCanvas) pieCanvas.style.display = '';
+      if (barCanvas) barCanvas.style.display = '';
+    }
+
+    if (window._chartPie instanceof Chart) try { window._chartPie.destroy(); } catch(e){}
+    if (window._chartBar instanceof Chart) try { window._chartBar.destroy(); } catch(e){}
+
+    // Pie chart
+    if (pieCanvas) {
+      const pieCtx = pieCanvas.getContext('2d');
+      window._chartPie = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+          labels: labels.map((l,i) => `${l} (${dataValues[i] ?? 0})`),
+          datasets: [{
+            data: dataValues,
+            backgroundColor: COLORS.slice(0, labels.length),
+            hoverOffset: 8
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    // Bar chart
+    if (barCanvas) {
+      const barCtx = barCanvas.getContext('2d');
+      window._chartBar = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Usuarios',
+            data: dataValues,
+            backgroundColor: BG_COLORS.slice(0, labels.length),
+            borderColor: COLORS.slice(0, labels.length),
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+
+
+    // Actualizar total y resumen
+    if (totalEl) totalEl.textContent = total;
+    if (resumenContainer) {
+      while (resumenContainer.firstChild) resumenContainer.removeChild(resumenContainer.firstChild);
+      for (let i = 0; i < labels.length; i++) {
+        const col = document.createElement('div');
+        col.className = 'col-md-4';
+        col.innerHTML = `<div class="p-2 border rounded text-center"><strong>${labels[i]}</strong><div class="text-muted">${dataValues[i]} usuarios</div></div>`;
+        resumenContainer.appendChild(col);
+      }
+    }   
+  }
+
+  // Render inicial
+  renderCharts();
+
+  // Botón para actualizar los gráficos
+  const btnRefresh = document.getElementById('btnRefresh');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', async () => {
+      try {
+        const resp = await fetch("{% url 'reportes_data' %}");
+        const js = await resp.json();
+        if (js.error) { alert("Error: " + js.error); return; }
+        labels = js.labels || [];
+        dataValues = (js.data || []).map(v => Number(v) || 0);
+        ingresosLabels = js.ingresos_labels || [];
+        ingresosValues = (js.ingresos_data || []).map(v => Number(v) || 0);
+        renderCharts();
+      } catch (e) {
+        alert("No se pudo actualizar: " + e.message);
+      }
+    });
+  }
+})();
+
+
+</script>
+
+
 {% endblock %}

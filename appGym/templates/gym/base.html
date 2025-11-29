@@ -67,13 +67,15 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
 
-        <!-- Botón que envía el formulario -->
-        <button id="{% url 'eliminar_admin' %}" class="btn text-white fondo">     Sí, eliminar   </button>
-   
+        <!-- BOTÓN: envía el formulario existente (POST) -->
+        <button id="btnConfirmarEliminar" type="button" class="btn text-white fondo">
+          Sí, eliminar
+        </button>
       </div>
 
     </div>
   </div>
+</div>
 </div>
 
   {% bootstrap_javascript %}

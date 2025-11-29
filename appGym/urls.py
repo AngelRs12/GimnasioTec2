@@ -32,4 +32,7 @@ urlpatterns = [
     path("obtener_membresias/", views.obtener_membresias, name="obtener_membresias"),
     path("editar_membresia/", views.editar_membresia, name="editar_membresia"),
     path("eliminar_membresia/", views.eliminar_membresia, name="eliminar_membresia"),
+path('reportes/data/', views.reportes_data, name='reportes_data'),  # opcional, para AJAX
+path('reportes/excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+
 ]
