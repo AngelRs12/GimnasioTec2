@@ -32,7 +32,12 @@ urlpatterns = [
     path("obtener_membresias/", views.obtener_membresias, name="obtener_membresias"),
     path("editar_membresia/", views.editar_membresia, name="editar_membresia"),
     path("eliminar_membresia/", views.eliminar_membresia, name="eliminar_membresia"),
-path('reportes/data/', views.reportes_data, name='reportes_data'),  # opcional, para AJAX
-path('reportes/excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+    path('reportes/data/', views.reportes_data, name='reportes_data'),  # opcional, para AJAX
+    path('reportes/excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+    path('actividades/agregar/', views.actividad_agregar, name='actividad_agregar'),
+    path('actividades/editar/<int:id_actividad>/', views.actividad_editar, name='actividad_editar'),
+    path('actividades/eliminar/<int:id_actividad>/', views.actividad_eliminar, name='actividad_eliminar'),
+    path('actividades_json/', views.actividades_json, name='actividades_json')
+
 
 ]

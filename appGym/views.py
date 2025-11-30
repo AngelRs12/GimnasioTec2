@@ -38,7 +38,12 @@ def entrenadores(request):
     return render(request, 'gym/entrenadores.html')
 
 def actividades(request):
-    return render(request, 'gym/actividades.html')
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM sp_select_actividades()")
+        columns = [col[0] for col in cursor.description]
+        actividades = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    return render(request, "gym/actividades.html", {"actividades": actividades})
+    
 
 def acercade(request):
     return render(request, 'gym/acercade.html')
@@ -262,14 +267,6 @@ def eliminar_admin(request):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"success": False, "error": err}, status=500)
         return render(request, "gym/administradores.html", {"error": f"No fue posible eliminar el administrador: {err}"})
-
-
-
-
-
-
-
-
 
 def editar_admin(request):
     """
@@ -674,9 +671,6 @@ def eliminar_membresia(request):
 
 
 
-
-
-
 def _fetch_users_rows():
     """
     Ejecuta exactamente la consulta SQL que indicaste y devuelve las filas.
@@ -846,3 +840,82 @@ def generar_reporte_excel(request):
     response['Content-Disposition'] = 'attachment; filename="reporte_usuarios.xlsx"'
     return response
 
+def actividad_eliminar(request, id_actividad):
+    if request.method != "POST":
+        return JsonResponse({'ok': False, 'msg': "Método inválido"}, status=400)
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT sp_delete_actividad(%s);', [id_actividad])
+
+        return JsonResponse({'ok': True, 'message':'Actividad eliminada correctamente', 'success':True})
+
+    except Exception as e:
+        return JsonResponse({'ok': False, 'message': str(e)}, status=500)
+
+def actividad_editar(request, id_actividad):
+    if request.method != "POST":
+        return JsonResponse({'ok': False, 'msg': "Método no permitido"}, status=405)
+
+    nombre = request.POST.get('nombre')
+    descripcion = request.POST.get('descripcion')
+    horario = request.POST.get('horario')
+
+    if not nombre:
+        return JsonResponse({'ok': False, 'msg': "El nombre es obligatorio"}, status=422)
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT sp_update_actividad(%s, %s, %s, %s);",
+                [id_actividad, nombre, descripcion, horario]
+            )
+        return JsonResponse({'ok': True, 'message':'Actividad editada correctamente', 'success':True})
+
+    except Exception as e:
+        return JsonResponse({'ok': False, 'message': str(e)}, status=500)
+    
+def actividad_agregar(request):
+    if request.method == "POST":
+        nombre = request.POST.get("nombre")
+        descripcion = request.POST.get("descripcion")
+        horario = request.POST.get("horario")
+
+    if not nombre:
+        return JsonResponse({'ok': False, 'msg': "Falta nombre"}, status=422)
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'SELECT sp_insert_actividad(%s, %s, %s);',
+                [nombre, descripcion, horario]
+            )
+
+        return JsonResponse({
+            "success": True,
+            "message": "Actividad agregada correctamente."
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": f"Error al agregar la actividad: {e}"
+            })
+        
+def actividades_json(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id_actividad, nombre, descripcion, horario FROM actividades;")
+        actividades = cursor.fetchall()
+
+    return JsonResponse({
+        "is_admin": bool(request.session.get("usuario_admin")),
+        "actividades": [
+            {
+                "id_actividad": a[0],
+                "nombre": a[1],
+                "descripcion": a[2],
+                "horario": a[3],
+            }
+            for a in actividades
+        ]
+    })
