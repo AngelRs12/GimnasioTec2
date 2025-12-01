@@ -168,6 +168,33 @@ Gimnasio{% endblock %} {% block content %}
     </div>
   </div>
 </div>
+<!-- MODAL CONFIRMAR ELIMINACIÓN -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Eliminar actividad</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body fs-5">
+        ¿Estás seguro que deseas eliminar esta actividad?
+        <p class="text-muted mt-2 mb-0">
+          Esta acción no se puede deshacer.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button class="btn btn-danger" id="btnConfirmarEliminar">
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
   function getCookie(name) {
     let cookieValue = null;
@@ -183,6 +210,7 @@ Gimnasio{% endblock %} {% block content %}
     }
     return cookieValue;
   }
+  let idAEliminar = null;
   const csrftoken = getCookie("csrftoken");
   const formAgregar = document.getElementById("formAgregar");
 
@@ -236,7 +264,6 @@ Gimnasio{% endblock %} {% block content %}
   data.actividades.forEach(a => {
 
     if (data.is_admin) {
-      // 🎯 Vista ADMIN editable
       grid.innerHTML += `
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0">
@@ -266,7 +293,6 @@ Gimnasio{% endblock %} {% block content %}
         </div>
       </div>`;
     } else {
-      // 🌟 Vista normal pública
       grid.innerHTML += `
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0">
@@ -285,33 +311,15 @@ Gimnasio{% endblock %} {% block content %}
   // ⚙️ reatacha eventos a botones
   bindEditarEliminar();
 }
-  document.addEventListener("click", async (e) => {
-    // solo botones eliminar
-    if (!e.target.classList.contains("btn-eliminar")) return;
+document.addEventListener("click", (e) => {
+  // Solo botones eliminar
+  if (!e.target.classList.contains("btn-eliminar")) return;
 
-    const id = e.target.dataset.id;
+  idAEliminar = e.target.dataset.id;
 
-    if (!confirm("¿Seguro que deseas eliminar esta actividad?")) return;
-
-    const csrftoken = document.querySelector(
-      "[name=csrfmiddlewaretoken]"
-    ).value;
-
-    const resp = await fetch(`/actividades/eliminar/${id}/`, {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": csrftoken,
-      },
-    });
-
-    const result = await resp.json();
-
-    showAlert(result.message, result.success ? "success" : "danger");
-
-    if (result.success) {
-      actualizarActividades();
-    }
-  });
+  const modal = new bootstrap.Modal(document.getElementById("modalEliminar"));
+  modal.show();
+});
 document.querySelectorAll(".btn-editar").forEach(button => {
   button.addEventListener("click", async () => {
     const id = button.dataset.id;
@@ -379,5 +387,29 @@ function bindEditarEliminar() {
     });
   });
 }
+
+document.getElementById("btnConfirmarEliminar").addEventListener("click", async () => {
+  if (!idAEliminar) return;
+
+  const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+  const resp = await fetch(`/actividades/eliminar/${idAEliminar}/`, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrftoken,
+    },
+  });
+  const result = await resp.json();
+
+  // Ocultamos el modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById("modalEliminar"));
+  modal.hide();
+
+  showAlert(result.message, result.success ? "success" : "danger");
+
+  if (result.success) {
+    actualizarActividades();
+  }
+});
 </script>
 {% endblock %}

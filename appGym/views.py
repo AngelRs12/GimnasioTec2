@@ -8,6 +8,8 @@ from django.views.decorators.http import require_POST
 import io
 import base64
 from django.http import HttpResponse
+import os
+from django.conf import settings
 
 
 def index(request):
@@ -35,7 +37,25 @@ def horario(request):
     return render(request, 'gym/horario.html')
 
 def entrenadores(request):
-    return render(request, 'gym/entrenadores.html')
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM obtener_entrenadores()")
+        rows = cursor.fetchall()
+
+    entrenadores_list = []
+    for r in rows:
+        entrenadores_list.append({
+            "id_entrenador": r[0],
+            "Nombres": r[1],
+            "ApellidoM": r[2],
+            "ApellidoP": r[3],
+            "descrpicion": r[4],
+            "url_img": r[5]
+        })
+    print(entrenadores_list)
+    return render(request, "gym/entrenadores.html", {
+        "entrenadores": entrenadores_list,
+        "MEDIA_URL": settings.MEDIA_URL
+    })
 
 def actividades(request):
     with connection.cursor() as cursor:
@@ -904,7 +924,7 @@ def actividad_agregar(request):
         
 def actividades_json(request):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id_actividad, nombre, descripcion, horario FROM actividades;")
+        cursor.execute("SELECT * FROM sp_select_actividades()")
         actividades = cursor.fetchall()
 
     return JsonResponse({
@@ -918,4 +938,68 @@ def actividades_json(request):
             }
             for a in actividades
         ]
+    })
+    
+def editar_entrenador(request, id_actividad):
+    return render(request, 'gym/horario.html')
+
+def eliminar_entrenador(request, id_actividad):
+    return render(request, 'gym/horario.html')
+
+def agregar_entrenador(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Método inválido"}, status=400)
+
+    try:
+        nombres = request.POST.get("nombres")
+        apellidoP = request.POST.get("apellidoP")
+        apellidoM = request.POST.get("apellidoM")
+        descripcion = request.POST.get("descripcion")
+        file = request.FILES.get("img")
+
+        nombre_img = None
+
+        if file:
+            carpeta = os.path.join(settings.MEDIA_ROOT, "fotosEntrenadores")
+            os.makedirs(carpeta, exist_ok=True)
+
+            ruta = os.path.join(carpeta, file.name)
+
+            with open(ruta, "wb+") as destino:
+                for chunk in file.chunks():
+                    destino.write(chunk)
+
+            nombre_img = file.name
+
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "insertar_entrenador",
+                [nombres, apellidoM, apellidoP, descripcion, nombre_img]
+            )
+
+        return JsonResponse({"ok": True})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+def lista_entrenadores_json(request):
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT * FROM obtener_entrenadores()')
+        rows = cursor.fetchall()
+
+    entrenadores_list = []
+    for r in rows:
+        entrenadores_list.append({
+            "id_entrenador": r[0],
+            "Nombres": r[1],
+            "ApellidoM": r[2],
+            "ApellidoP": r[3],
+            "descripcion": r[4],
+            "url_img": r[5]
+        })
+
+    return JsonResponse({
+        "entrenadores": entrenadores_list,
+        "MEDIA_URL": settings.MEDIA_URL,
+        "usuario_admin": request.session.get("usuario_admin", False)
     })

@@ -79,9 +79,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'Gimnasio',          # Nombre de tu base de datos
         'USER': 'postgres',        # Usuario de PostgreSQL
-        'PASSWORD': '2004',      # Contraseña del usuario
+        'PASSWORD': '12345',      # Contraseña del usuario
         'HOST': 'localhost',      # O la IP del servidor
-        'PORT': '5432',           # Puerto por defecto de PostgreSQL
+        'PORT': '5433',           # Puerto por defecto de PostgreSQL
 }
 }
 
@@ -120,6 +120,9 @@ USE_I18N = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
