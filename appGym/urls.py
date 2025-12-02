@@ -38,9 +38,9 @@ urlpatterns = [
     path('actividades/editar/<int:id_actividad>/', views.actividad_editar, name='actividad_editar'),
     path('actividades/eliminar/<int:id_actividad>/', views.actividad_eliminar, name='actividad_eliminar'),
     path('actividades_json/', views.actividades_json, name='actividades_json'),
-    path('editar_entrenador/<int:id_actividad>/', views.editar_entrenador, name='editar_entrenador'),
+    path('editar_entrenador/<int:id_entrenador>/', views.editar_entrenador, name='editar_entrenador'),
     path('agregar_entrenador/', views.agregar_entrenador, name='agregar_entrenador'),
-    path('eliminar_entrenador/<int:id_actividad>/', views.eliminar_entrenador, name='eliminar_entrenador'),    
+    path('entrenadores/eliminar/<int:id_entrenador>/', views.eliminar_entrenador, name='eliminar_entrenador'), 
     path('lista_entrenadores_json/', views.lista_entrenadores_json, name='lista_entrenadores_json')
 
 

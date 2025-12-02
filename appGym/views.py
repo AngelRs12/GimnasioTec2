@@ -1,3 +1,4 @@
+import time
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.contrib import messages
@@ -10,7 +11,7 @@ import base64
 from django.http import HttpResponse
 import os
 from django.conf import settings
-
+import uuid
 
 def index(request):
     return render(request, 'gym/index.html')
@@ -940,12 +941,107 @@ def actividades_json(request):
         ]
     })
     
-def editar_entrenador(request, id_actividad):
-    return render(request, 'gym/horario.html')
+def editar_entrenador(request, id_entrenador):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "message": "Método no permitido"}, status=405)
+    try:
+        nombres = request.POST.get("nombres")
+        apellidoP = request.POST.get("apellidoP")
+        apellidoM = request.POST.get("apellidoM")
+        descripcion = request.POST.get("descripcion")
 
-def eliminar_entrenador(request, id_actividad):
-    return render(request, 'gym/horario.html')
+        file = request.FILES.get("img")
+        nombre_img = None
 
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT url_imagen
+                FROM public."Entrenadores"
+                WHERE id_entrenador = %s
+            """, [id_entrenador])
+            row = cursor.fetchone()
+            img_actual = row[0] if row else None
+
+        # ─────────────────────────────────────────
+        # 2. Si se sube nueva imagen → guardar y borrar anterior
+        # ─────────────────────────────────────────
+        if file:
+            carpeta = os.path.join(settings.MEDIA_ROOT, "fotosEntrenadores")
+            os.makedirs(carpeta, exist_ok=True)
+
+            # Evitar sobrescribir imágenes repetidas
+            ext = os.path.splitext(file.name)[1]
+            base = os.path.splitext(file.name)[0]
+            nombre_img = f"{base}_{int(time.time())}{ext}"
+
+            ruta_nueva = os.path.join(carpeta, nombre_img)
+
+            with open(ruta_nueva, "wb+") as destino:
+                for chunk in file.chunks():
+                    destino.write(chunk)
+
+            # eliminar imagen anterior
+            if img_actual:
+                ruta_old = os.path.join(carpeta, img_actual)
+                if os.path.exists(ruta_old):
+                    os.remove(ruta_old)
+
+        else:
+            # No se envió nueva imagen → se conserva la anterior
+            nombre_img = img_actual
+
+        # ─────────────────────────────────────────
+        # 3. Ejecutar SP
+        # ─────────────────────────────────────────
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "actualizar_entrenador",
+                [id_entrenador, nombres, apellidoP, apellidoM, descripcion, nombre_img]
+            )
+            result = cursor.fetchone()[0]
+
+        return JsonResponse(result)
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": f"Error al actualizar: {str(e)}"
+        }, status=500)
+
+def eliminar_entrenador(request, id_entrenador):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "message": "Método no permitido"}, status=405)
+
+    try:
+        # 1️⃣ Obtener el nombre de la imagen antes de eliminar
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT url_imagen FROM public."Entrenadores" WHERE id_entrenador = %s', [id_entrenador])
+            row = cursor.fetchone()
+
+        if not row:
+            return JsonResponse({"success": False, "message": "Entrenador no existe"}, status=404)
+
+        imagen = row[0]  # nombre del archivo (ej: "juan.png")
+
+        # 2️⃣ Ejecutar el Stored Procedure de eliminación
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT eliminar_entrenador(%s);", [id_entrenador])
+            result = cursor.fetchone()[0]
+
+        # 3️⃣ Si eliminó correctamente, eliminar el archivo físico
+        if result.get("success") and imagen:
+            ruta_img = os.path.join(settings.MEDIA_ROOT, "fotosEntrenadores", imagen)
+            if os.path.exists(ruta_img):
+                os.remove(ruta_img)
+
+        return JsonResponse(result)
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": f"Error al eliminar: {str(e)}"
+        }, status=500)
+        
 def agregar_entrenador(request):
     if request.method != "POST":
         return JsonResponse({"error": "Método inválido"}, status=400)
@@ -963,14 +1059,19 @@ def agregar_entrenador(request):
             carpeta = os.path.join(settings.MEDIA_ROOT, "fotosEntrenadores")
             os.makedirs(carpeta, exist_ok=True)
 
-            ruta = os.path.join(carpeta, file.name)
+            # Extensión real del archivo
+            extension = os.path.splitext(file.name)[1]
+            
+            # Generar nombre único
+            nombre_img = f"{uuid.uuid4().hex}{extension}"
+            ruta = os.path.join(carpeta, nombre_img)
 
+            # Guardar
             with open(ruta, "wb+") as destino:
                 for chunk in file.chunks():
                     destino.write(chunk)
 
-            nombre_img = file.name
-
+        # Guardar datos en BD
         with connection.cursor() as cursor:
             cursor.callproc(
                 "insertar_entrenador",
