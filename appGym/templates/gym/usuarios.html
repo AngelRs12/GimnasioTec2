@@ -105,6 +105,7 @@ Gestión de Usuarios{% endblock %} {% block content %}
                   required
                 >
                   <option value="">Seleccione tipo</option>
+                  <option value="empleado">Empleado</option>
                   <option value="alumno">Alumno</option>
                   <option value="representativo">Representativo</option>
                   <option value="externo">Externo</option>
@@ -286,6 +287,7 @@ Gestión de Usuarios{% endblock %} {% block content %}
                   required
                 >
                   <option value="">Seleccione tipo</option>
+                  <option value="empleado">Empleado</option>
                   <option value="alumno">Alumno</option>
                   <option value="representativo">Representativo</option>
                   <option value="externo">Externo</option>
@@ -431,7 +433,13 @@ Gestión de Usuarios{% endblock %} {% block content %}
         <input type="text" class="form-control" name="no_control" value="${valorNoControl}" required>
       </div>`;
       }
-
+if (tipo === "empleado") {
+        editarCamposExtra.innerHTML = `
+      <div class="mb-3">
+        <label class="form-label">Número de Control</label>
+        <input type="text" class="form-control" name="numero_empleado" value="${valorNoControl}" required>
+      </div>`;
+      }
       if (tipo === "representativo") {
         editarCamposExtra.innerHTML = `
       <div class="mb-3">
@@ -463,23 +471,23 @@ Gestión de Usuarios{% endblock %} {% block content %}
       mostrarSeccion(seccionBuscar);
     });
     btnBuscar.addEventListener("click", () => {
-  tituloBusqueda.textContent = "Buscar Usuario";
-  tituloBusqueda.className = "mb-3 text-primary";
-  mostrarSeccion(seccionBuscar);
-});
+      tituloBusqueda.textContent = "Buscar Usuario";
+      tituloBusqueda.className = "mb-3 text-primary";
+      mostrarSeccion(seccionBuscar);
+    });
 
-  btnEditar.addEventListener("click", () => {
-  tituloBusqueda.textContent = "Editar Usuario";
-  tituloBusqueda.className = "mb-3 text-warning";
-  mostrarSeccion(seccionBuscar);
-});
+    btnEditar.addEventListener("click", () => {
+      tituloBusqueda.textContent = "Editar Usuario";
+      tituloBusqueda.className = "mb-3 text-warning";
+      mostrarSeccion(seccionBuscar);
+    });
 
-btnEliminar.addEventListener("click", () => {
-  tituloBusqueda.textContent = "Eliminar Usuario";
-  tituloBusqueda.className = "mb-3 text-danger";
-  mostrarSeccion(seccionBuscar);
-  modoEliminar = true;
-});
+    btnEliminar.addEventListener("click", () => {
+      tituloBusqueda.textContent = "Eliminar Usuario";
+      tituloBusqueda.className = "mb-3 text-danger";
+      mostrarSeccion(seccionBuscar);
+      modoEliminar = true;
+    });
     tipoUsuario.addEventListener("change", () => {
       const tipo = tipoUsuario.value;
       camposExtra.innerHTML = "";
@@ -491,7 +499,13 @@ btnEliminar.addEventListener("click", () => {
         <input type="text" class="form-control" name="no_control" required>
       </div>`;
       }
-
+      if (tipo === "empleado") {
+        camposExtra.innerHTML = `
+    <div class="mb-3">
+      <label class="form-label">Número de Empleado</label>
+      <input type="text" class="form-control" name="numero_empleado" required>
+    </div>`;
+      }
       if (tipo === "representativo") {
         camposExtra.innerHTML = `
       <div class="mb-3">
@@ -568,34 +582,36 @@ btnEliminar.addEventListener("click", () => {
 
     // ------ FUNCIÓN PARA DETALLE ------
     function mostrarDetalle(u) {
-    valorNoControl = u.no_control || "";
-    valorEquipo = u.equipo || "";
-    const botonEliminar = document.getElementById("boton-eliminar");
+      valorNoControl = u.no_control || "";
+      valorEquipo = u.equipo || "";
+      const botonEliminar = document.getElementById("boton-eliminar");
 
-    // --- LLENAR DETALLE ---
-    detalleUsuario.classList.remove("d-none");
+      // --- LLENAR DETALLE ---
+      detalleUsuario.classList.remove("d-none");
 
-    document.getElementById("detalle-nombre").textContent =
-        `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
+      document.getElementById(
+        "detalle-nombre"
+      ).textContent = `${u.nombres} ${u.apellido_paterno} ${u.apellido_materno}`;
 
-    document.getElementById("detalle-id").textContent = "ID: " + u.id_usuario;
-    document.getElementById("detalle-tipo").textContent = "Tipo: " + u.tipo_usuario;
+      document.getElementById("detalle-id").textContent = "ID: " + u.id_usuario;
+      document.getElementById("detalle-tipo").textContent =
+        "Tipo: " + u.tipo_usuario;
 
-    document.getElementById("detalle-foto").src =
+      document.getElementById("detalle-foto").src =
         u.foto || "https://via.placeholder.com/80";
 
-    // --- MODO ELIMINAR ---
-    if (modoEliminar) {
+      // --- MODO ELIMINAR ---
+      if (modoEliminar) {
         botonEliminar.classList.remove("d-none");
         document.getElementById("id_eliminar").value = u.id_usuario;
-    } else {
+      } else {
         botonEliminar.classList.add("d-none");
-    }
+      }
 
-    // --- FORMULARIO EDITAR SOLO SI ESTAMOS EN MODO EDITAR ---
-    const seccionEditar = document.getElementById("seccion-editar");
+      // --- FORMULARIO EDITAR SOLO SI ESTAMOS EN MODO EDITAR ---
+      const seccionEditar = document.getElementById("seccion-editar");
 
-    if (!modoEliminar && tituloBusqueda.textContent === "Editar Usuario") {
+      if (!modoEliminar && tituloBusqueda.textContent === "Editar Usuario") {
         seccionEditar.classList.remove("d-none");
 
         // Llenar formulario editar
@@ -609,15 +625,22 @@ btnEliminar.addEventListener("click", () => {
         extra.innerHTML = "";
 
         if (u.tipo_usuario === "alumno") {
-            extra.innerHTML = `
+          extra.innerHTML = `
                 <div class="mb-3">
                     <label class="form-label">Número de Control</label>
                     <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
                 </div>`;
         }
+        if (u.tipo_usuario === "empleado") {
+    extra.innerHTML = `
+        <div class="mb-3">
+            <label class="form-label">Número de Empleado</label>
+            <input type="text" class="form-control" name="no_control" value="${u.no_empleado}" required>
+        </div>`;
+}
 
         if (u.tipo_usuario === "representativo") {
-            extra.innerHTML = `
+          extra.innerHTML = `
                 <div class="mb-3">
                     <label class="form-label">Número de Control</label>
                     <input type="text" class="form-control" name="no_control" value="${u.no_control}" required>
@@ -627,12 +650,11 @@ btnEliminar.addEventListener("click", () => {
                     <input type="text" class="form-control" name="equipo" value="${u.equipo}" required>
                 </div>`;
         }
-
-    } else {
+      } else {
         // No mostrar el formulario editar
         seccionEditar.classList.add("d-none");
+      }
     }
-}
 
     // ------- AGREGAR USUARIO -------
     formAgregar.addEventListener("submit", async (e) => {
@@ -665,57 +687,49 @@ btnEliminar.addEventListener("click", () => {
       }
     });
 
+    // --- SUBMIT PARA EDITAR ---
+    document
+      .getElementById("form-editar-usuario")
+      .addEventListener("submit", async function (e) {
+        e.preventDefault();
 
-// --- SUBMIT PARA EDITAR ---
-document.getElementById("form-editar-usuario").addEventListener("submit", async function (e) {
-    e.preventDefault();
+        let form = document.getElementById("form-editar-usuario");
+        let alerta = document.getElementById("alerta-editar");
+        let formData = new FormData(form);
 
-    let form = document.getElementById("form-editar-usuario");
-    let alerta = document.getElementById("alerta-editar");
-    let formData = new FormData(form);
-
-    try {
-        let response = await fetch("{% url 'gestion_usuarios' %}", {
+        try {
+          let response = await fetch("{% url 'gestion_usuarios' %}", {
             method: "POST",
             body: formData,
             headers: {
-                "X-Requested-With": "XMLHttpRequest"
-            }
-        });
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          });
 
-        let data = await response.json();
+          let data = await response.json();
 
-        if (data.success) {
+          if (data.success) {
             alerta.innerHTML = `
                 <div class="alert alert-success">
                     ${data.mensaje}
                 </div>
             `;
 
-            // Ocultar formulario después de guardar
-            setTimeout(() => {
-                document.getElementById("seccion-editar").classList.add("d-none");
-                location.reload(); // si quieres refrescar tabla
-            }, 1200);
-
-        } else {
+          } else {
             alerta.innerHTML = `
                 <div class="alert alert-danger">
                     ${data.error}
                 </div>
             `;
-        }
-
-    } catch (error) {
-        alerta.innerHTML = `
+          }
+        } catch (error) {
+          alerta.innerHTML = `
             <div class="alert alert-danger">
                 Error inesperado en el servidor.
             </div>
         `;
-    }
-});
-
-
+        }
+      });
 
     formEliminar.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -748,7 +762,9 @@ document.getElementById("form-editar-usuario").addEventListener("submit", async 
           document.getElementById("detalle-usuario").classList.add("d-none");
           resultados.style.display = "none";
           modoEliminar = false;
-          document.getElementById("form-buscar").dispatchEvent(new Event("submit"));
+          document
+            .getElementById("form-buscar")
+            .dispatchEvent(new Event("submit"));
         } else {
           alertaEliminar.innerHTML = `
         <div class="alert alert-danger">
@@ -778,5 +794,3 @@ document.getElementById("form-editar-usuario").addEventListener("submit", async 
 </script>
 
 {% endblock %}
-
-

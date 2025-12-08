@@ -378,18 +378,20 @@ def gestion_usuarios(request):
         apellido_materno = request.POST.get("apellido_materno")
         no_control = request.POST.get("no_control")  # si aplica
         equipo = request.POST.get("equipo")  # si aplica (solo representativo)
-
+        numero_empleado = request.POST.get("numero_empleado")
         if accion == "agregar":
             try:
+                
                 with connection.cursor() as cursor:
                     cursor.execute("""
-                        SELECT insertar_usuario_general(%s, %s, %s, %s, %s, %s)
+                        SELECT insertar_usuario_general(%s, %s, %s, %s, %s, %s, %s)
                     """, [
                         nombre,
                         apellido_paterno,
                         apellido_materno,
                         tipo_usuario,
                         no_control,
+                        numero_empleado,
                         equipo  # nuevo parámetro
                     ])
 
@@ -422,19 +424,23 @@ def gestion_usuarios(request):
             tipo_usuario = request.POST.get("tipo_usuario")
             no_control = request.POST.get("no_control")
             equipo = request.POST.get("equipo")
+            numero_empleado = request.POST.get("no_control")
+   
             try:
                 with connection.cursor() as cursor:
                     cursor.execute("""
-                        SELECT editar_usuario_general(%s, %s, %s, %s, %s, %s, %s)
+                    SELECT editar_usuario_general(%s, %s, %s, %s, %s, %s, %s, %s)
                     """, [
-                        id_usuario,
-                        nombre,
-                        apellido_paterno,
-                        apellido_materno,
-                        tipo_usuario,
-                        no_control if no_control else None,
-                        equipo if equipo else None
-                    ])
+                    id_usuario,
+                    nombre,
+                    apellido_paterno,
+                    apellido_materno,
+                    tipo_usuario,
+                    no_control if no_control else None,
+                    numero_empleado if numero_empleado else None,   # ← NUEVO
+                    equipo if equipo else None
+                ])
+
 
                     mensaje = cursor.fetchone()[0]  # La función retorna texto
 
