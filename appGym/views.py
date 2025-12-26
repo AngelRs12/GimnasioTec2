@@ -754,7 +754,67 @@ def uso_gimnasio_data(request):
 
 
 
+from django.http import JsonResponse
+from django.db import connection
+import json
 
+def uso_gimnasio_por_hora_data(request):
+    """
+    Endpoint JSON
+    Uso del gimnasio por día (L-V) y por hora (8:00–23:00)
+    """
+
+    query = """
+        SELECT 
+          EXTRACT(DOW FROM fecha) AS dia,
+          EXTRACT(HOUR FROM fecha) AS hora,
+          COUNT(*) AS total
+        FROM ingresos
+        WHERE tipo = 'ENTRADA'
+          AND EXTRACT(DOW FROM fecha) BETWEEN 1 AND 5
+          AND EXTRACT(HOUR FROM fecha) BETWEEN 8 AND 23
+        GROUP BY dia, hora
+        ORDER BY dia, hora;
+    """
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+    dias_map = {
+        1: "Lunes",
+        2: "Martes",
+        3: "Miércoles",
+        4: "Jueves",
+        5: "Viernes"
+    }
+
+    # Inicializar estructura completa (día + hora)
+    conteo = {}
+    for d in range(1, 6):
+        for h in range(8, 24):
+            conteo[(d, h)] = 0
+
+    # Llenar con datos reales
+    for dia, hora, total in rows:
+        conteo[(int(dia), int(hora))] = int(total)
+
+    labels = []
+    data = []
+
+    # Generar labels tipo: "Lunes 08:00"
+    for d in range(1, 6):
+        for h in range(8, 24):
+            labels.append(f"{dias_map[d]} {h:02d}:00")
+            data.append(conteo[(d, h)])
+
+    return JsonResponse({
+        "labels": labels,
+        "data": data
+    })
 
 def _fetch_users_rows():
     """

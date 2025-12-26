@@ -50,6 +50,9 @@ urlpatterns = [
     
     
     path('reportes/uso-gimnasio/', views.uso_gimnasio_data, name='uso_gimnasio_data'),
+    
+    
+path('reportes/uso-gimnasio/', views.uso_gimnasio_por_hora_data, name='uso_gimnasio_por_hora_data'),
 
 
 ]
