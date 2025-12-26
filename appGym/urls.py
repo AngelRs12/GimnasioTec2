@@ -33,7 +33,11 @@ urlpatterns = [
     path("editar_membresia/", views.editar_membresia, name="editar_membresia"),
     path("eliminar_membresia/", views.eliminar_membresia, name="eliminar_membresia"),
     path('reportes/data/', views.reportes_data, name='reportes_data'),  # opcional, para AJAX
+    
+    
     path('reportes/excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+    
+    
     path('actividades/agregar/', views.actividad_agregar, name='actividad_agregar'),
     path('actividades/editar/<int:id_actividad>/', views.actividad_editar, name='actividad_editar'),
     path('actividades/eliminar/<int:id_actividad>/', views.actividad_eliminar, name='actividad_eliminar'),
@@ -41,7 +45,11 @@ urlpatterns = [
     path('editar_entrenador/<int:id_entrenador>/', views.editar_entrenador, name='editar_entrenador'),
     path('agregar_entrenador/', views.agregar_entrenador, name='agregar_entrenador'),
     path('entrenadores/eliminar/<int:id_entrenador>/', views.eliminar_entrenador, name='eliminar_entrenador'), 
-    path('lista_entrenadores_json/', views.lista_entrenadores_json, name='lista_entrenadores_json')
+    path('lista_entrenadores_json/', views.lista_entrenadores_json, name='lista_entrenadores_json'),
+    
+    
+    
+    path('reportes/uso-gimnasio/', views.uso_gimnasio_data, name='uso_gimnasio_data'),
 
 
 ]

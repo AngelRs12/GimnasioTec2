@@ -26,6 +26,7 @@
     width: 100% !important; /* Asegura que el gráfico ocupe todo el espacio disponible */
     max-width: 100%; /* Evita que el gráfico exceda el contenedor */
     height: 300px; /* Ajusta el tamaño del gráfico */
+      height: 280px !important;
   }
 </style>
 
@@ -89,6 +90,34 @@
           </div>
         </div>
 
+  <!-- HISTOGRAMA USO DEL GIMNASIO -->
+<div class="col-12 mt-4">
+  <div class="chart-wrap" style="min-height:360px;">
+    <div style="width:100%;">
+      <h5 class="fw-bold text-center mb-3">Uso del Gimnasio</h5>
+      <canvas id="histogramChart"></canvas>
+      <div id="histogramNoData" class="text-center text-muted" style="display:none;">
+        No hay datos para mostrar.
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- HISTOGRAMA USO DEL GIMNASIO Diario -->
+<div class="col-12 mt-4">
+  <div class="chart-wrap" style="min-height:360px;">
+    <div style="width:100%;">
+      <h5 class="fw-bold text-center mb-3">Uso del Gimnasio2</h5>
+      <canvas id="histogramChart"></canvas>
+      <div id="histogramNoData" class="text-center text-muted" style="display:none;">
+        No hay datos para mostrar.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
       </div>
     </div>
   </div>
@@ -98,6 +127,14 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+  
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btnRefresh");
+
+  if (btn) {
+    btn.click(); // 🔥 simula el click
+  }
+});
 (function () {
   let labels = [];
   let dataValues = [];
@@ -130,6 +167,7 @@
   const BG_COLORS = COLORS.map(c => c.replace('hsl','hsla').replace(')',',0.85)'));
 
   function renderCharts() {
+    
     const total = dataValues.reduce((a,b) => a + b, 0);
 
     if (total === 0) {
@@ -187,6 +225,10 @@
           plugins: { legend: { display: false } }
         }
       });
+      
+
+
+      
     }
 
 
@@ -204,8 +246,97 @@
     }   
   }
 
+  async function cargarUsoGimnasio() {
+  try {
+    const resp = await fetch("{% url 'uso_gimnasio_data' %}");
+    const js = await resp.json();
+
+    const labels = js.labels || [];
+    const data = (js.data || []).map(v => Number(v) || 0);
+
+    const canvas = document.getElementById('histogramChart');
+    const noData = document.getElementById('histogramNoData');
+
+    if (!canvas) return;
+
+    const total = data.reduce((a,b)=>a+b,0);
+
+    if (total === 0) {
+      canvas.style.display = 'none';
+      if (noData) noData.style.display = 'block';
+      return;
+    }
+
+    canvas.style.display = '';
+    if (noData) noData.style.display = 'none';
+
+    if (window._chartHistogram instanceof Chart) {
+      window._chartHistogram.destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    window._chartHistogram = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Entradas al gimnasio',
+          data: data,
+          backgroundColor: 'hsla(219,57%,34%,0.85)',
+          borderColor: 'hsl(219,57%,24%)',
+          borderWidth: 1,
+            barThickness: 40, 
+barThickness: 35,          // ⬅ grosor fijo
+  maxBarThickness: 40,       // ⬅ límite
+  categoryPercentage: 0.6,   // ⬅ reduce espacio horizontal
+  barPercentage: 0.8         // ⬅ barras más juntas
+
+        }]
+      },
+      options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        precision: 0,
+        stepSize: 1           // ⬅ evita saltos grandes
+      }
+    },
+    x: {
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0
+      },
+      grid: {
+        display: false        // ⬅ menos ruido visual
+      }
+    }
+  },
+  plugins: {
+    legend: { display: false },
+    title: {
+      display: true,
+      text: 'Uso Semanal del Gimnasio',
+      align: 'center',
+      font: { size: 16, weight: 'bold' }
+    }
+  }
+}
+
+    });
+
+  } catch (e) {
+    console.error("Error cargando uso del gimnasio:", e);
+  }
+}
+
+
   // Render inicial
   renderCharts();
+  cargarUsoGimnasio();
+
 
   // Botón para actualizar los gráficos
   const btnRefresh = document.getElementById('btnRefresh');
@@ -217,18 +348,28 @@
         if (js.error) { alert("Error: " + js.error); return; }
         labels = js.labels || [];
         dataValues = (js.data || []).map(v => Number(v) || 0);
-        ingresosLabels = js.ingresos_labels || [];
-        ingresosValues = (js.ingresos_data || []).map(v => Number(v) || 0);
+       ingresosLabels = js.ingresos_labels_json
+  ? JSON.parse(js.ingresos_labels_json)
+  : [];
+
+ingresosValues = js.ingresos_values_json
+  ? JSON.parse(js.ingresos_values_json).map(v => Number(v) || 0)
+  : [];
+
         renderCharts();
+        cargarUsoGimnasio();
+
       } catch (e) {
         alert("No se pudo actualizar: " + e.message);
       }
+
+
     });
+ 
   }
 })();
 
 
 </script>
-
 
 {% endblock %}

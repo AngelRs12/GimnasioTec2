@@ -698,6 +698,64 @@ def eliminar_membresia(request):
 
 
 
+
+
+# =========================
+# USO DEL GIMNASIO (HISTOGRAMA)
+# =========================
+def uso_gimnasio_data(request):
+    """
+    Endpoint JSON para el histograma de uso del gimnasio
+    Agrupa entradas por día (lunes a viernes)
+    """
+    query = """
+        SELECT
+          EXTRACT(DOW FROM fecha) AS dia,
+          COUNT(*) AS total
+        FROM ingresos
+        WHERE tipo = 'ENTRADA'
+          AND EXTRACT(DOW FROM fecha) BETWEEN 1 AND 5
+        GROUP BY dia
+        ORDER BY dia;
+    """
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+    dias_map = {
+        1: "Lunes",
+        2: "Martes",
+        3: "Miércoles",
+        4: "Jueves",
+        5: "Viernes"
+    }
+
+    labels = []
+    data = []
+
+    # Inicializamos todos los días en 0
+    conteo_por_dia = {k: 0 for k in dias_map.keys()}
+
+    for dia, total in rows:
+        conteo_por_dia[int(dia)] = int(total)
+
+    for dia in range(1, 6):
+        labels.append(dias_map[dia])
+        data.append(conteo_por_dia[dia])
+
+    return JsonResponse({
+        "labels": labels,
+        "data": data
+    })
+
+
+
+
+
 def _fetch_users_rows():
     """
     Ejecuta exactamente la consulta SQL que indicaste y devuelve las filas.
@@ -1110,3 +1168,5 @@ def lista_entrenadores_json(request):
         "MEDIA_URL": settings.MEDIA_URL,
         "usuario_admin": request.session.get("usuario_admin", False)
     })
+    
+    
