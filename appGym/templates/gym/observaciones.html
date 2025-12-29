@@ -272,18 +272,12 @@ btnConfirmDelete.addEventListener("click", async () => {
     // Mostrar mensaje dentro del modal antes de cerrarlo
     const modalBody = document.querySelector("#confirmDeleteModal .modal-body");
     if (data.success) {
-      modalBody.innerHTML = `<div class="alert alert-success mb-0">${data.mensaje}</div>`;
+      confirmDeleteModal.hide();
       await cargarObservaciones(); // recargar lista
+      alertEditarContainer.innerHTML = `<div class="alert alert-success mb-0">${data.mensaje}</div>`;
     } else {
       modalBody.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
     }
-
-    // Cerrar modal automáticamente después de 1.5 segundos
-    setTimeout(() => {
-      confirmDeleteModal.hide();
-      // Restaurar mensaje original
-      modalBody.innerHTML = "¿Está seguro que desea eliminar esta observación?";
-    }, 1500);
 
   } catch (error) {
     console.error(error);

@@ -499,6 +499,7 @@ def registrar_ingreso(request):
     if request.method == "POST":
         id_usuario = request.POST.get("id_usuario")
         tipo = request.POST.get("tipo")
+
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -507,13 +508,28 @@ def registrar_ingreso(request):
                 )
                 mensaje = cursor.fetchone()[0]
 
-            return JsonResponse({"success": True, "mensaje": mensaje})
+            # 🔴 Validación desde PostgreSQL
+            if mensaje.startswith("Registro inválido"):
+                return JsonResponse({
+                    "success": False,
+                    "error": mensaje
+                })
+
+            return JsonResponse({
+                "success": True,
+                "mensaje": mensaje
+            })
 
         except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({
+                "success": False,
+                "error": str(e)
+            })
 
-    return JsonResponse({"success": False, "error": "Método no permitido"})
-
+    return JsonResponse({
+        "success": False,
+        "error": "Método no permitido"
+    })
 
 def guardar_observacion(request):
     if request.method == "POST":
@@ -1228,5 +1244,131 @@ def lista_entrenadores_json(request):
         "MEDIA_URL": settings.MEDIA_URL,
         "usuario_admin": request.session.get("usuario_admin", False)
     })
-    
-    
+def buscar_usuario_membresia(request):
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+
+        try:
+            data = json.loads(request.body)
+            id_usuario = data.get("usuario")
+
+            if not id_usuario:
+                return JsonResponse({
+                    "success": False,
+                    "error": "ID de usuario requerido"
+                }, status=400)
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM obtener_membresia_usuario(%s)",
+                    [id_usuario]
+                )
+
+                columnas = [col[0] for col in cursor.description]
+                filas = cursor.fetchall()   # 👈 CAMBIO CLAVE
+
+            # 🔴 No tiene membresía
+            if not filas:
+                return JsonResponse({
+                    "success": True,
+                    "tiene_membresia": False
+                })
+
+            # 🟢 Tiene membresía (solo 1 por diseño)
+            data_sql = dict(zip(columnas, filas[0]))
+            print(data_sql)
+            return JsonResponse({
+                "success": True,
+                "tiene_membresia": True,
+                "membresia": {
+                    "id_membresia": data_sql["id_membresia"],
+                    "no_membresia": data_sql["no_membresia"],
+                    "nombre_membresia": data_sql["nombre_membresia"],
+                    "fecha_inicial": data_sql["fecha_inicial"].strftime("%d/%m/%Y"),
+                    "fecha_final": data_sql["fecha_final"].strftime("%d/%m/%Y"),
+                    "status": data_sql["status"],
+                    "comentario": data_sql["comentario"]
+                }
+            })
+
+        except Exception as e:
+            error = str(e).split("CONTEXT:")[0].strip()
+            return JsonResponse({
+                "success": False,
+                "error": error
+            }, status=500)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)
+
+def asignar_membresia_usuario_view(request):
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        try:
+            data = json.loads(request.body)
+
+            id_usuario = data.get("id_usuario")
+            id_membresia = data.get("id_membresia")
+            fecha_inicio = data.get("fecha_inicio")
+            fecha_fin = data.get("fecha_fin")
+
+            if not all([id_usuario, id_membresia, fecha_inicio, fecha_fin]):
+                return JsonResponse({
+                    "success": False,
+                    "error": "Datos incompletos"
+                }, status=400)
+
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT asignar_membresia_usuario(%s, %s, %s, %s)
+                """, [
+                    id_usuario,
+                    id_membresia,
+                    fecha_inicio,
+                    fecha_fin
+                ])
+
+                mensaje = cursor.fetchone()[0]
+
+            return JsonResponse({
+                "success": True,
+                "mensaje": mensaje
+            })
+
+        except Exception as e:
+            error = str(e).split("CONTEXT:")[0].strip()
+            return JsonResponse({
+                "success": False,
+                "error": error
+            }, status=500)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)
+
+def actualizar_membresia(request):
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        try:
+            data = json.loads(request.body)
+
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT actualizar_membresia_usuario(%s,%s,%s,%s,%s,%s)
+                """, [
+                    data.get("id_usuario"),
+                    data.get("status"),
+                    data.get("id_membresia"),      # 👈 puede ser None
+                    data.get("fecha_inicial"),     # 👈 puede ser None
+                    data.get("fecha_final"),       # 👈 puede ser None
+                    data.get("comentario")
+                ])
+
+                mensaje = cursor.fetchone()[0]
+
+            return JsonResponse({
+                "success": True,
+                "mensaje": mensaje
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "error": str(e).split("CONTEXT:")[0]
+            }, status=500)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)

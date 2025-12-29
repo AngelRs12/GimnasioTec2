@@ -87,7 +87,7 @@
 </div>
 
 <nav class="navbar navbar-expand-lg navbar-dark fondo">
-  <div class="container-fluid">
+  <div class="">
     <!-- Botón para abrir/cerrar barra -->
     <button id="sidebarToggle" class="sidebar-toggle">
       ☰
@@ -102,7 +102,7 @@
     <!-- Texto -->
     <span class="text-white fs-5 fw-bold">Sistema de Control del Gimnasio del ITCJ</span>
 
-    <!-- Menú normal -->
+    <!-- Menú normal 
     <div class="collapse navbar-collapse" id="menu">
       <ul class="navbar-nav ms-auto">
         <li class="text-white fs-5 fw-bold"><a href="{% url 'index' %}" class="nav-link">Inicio</a></li>
@@ -113,6 +113,7 @@
         <li class="text-white fs-5 fw-bold"><a href="{% url 'acercade' %}" class="nav-link">Acerca de</a></li>
       </ul>
     </div>
+    -->
   </div>
 </nav>
 <!-- Barra lateral -->
@@ -151,7 +152,11 @@
 <a href="{% url 'sesion' %}">🔌 Iniciar Sesión</a>
 {% endif %}
 
-
+      <a href="{% url 'reglamento' %}" class="">Reglamento</a>
+      <a href="{% url 'horario' %}" class="">Horario</a>
+      <a href="{% url 'entrenadores' %}" class="">Entrenadores</a>
+      <a href="{% url 'actividades' %}" class="">Actividades</a>
+      <a href="{% url 'acercade' %}" class="">Acerca de</a>
 </div>
 
 <script>
