@@ -22,8 +22,8 @@ def usuarios(request):
 def entradas_salidas(request):
     return render(request, 'gym/entradas_salidas.html')
 
-def reportes(request):
-    return render(request, 'gym/reportes.html')
+def graficas(request):
+    return render(request, 'gym/graficas.html')
 
 def membresias(request):
     return render(request, 'gym/membresias.html')
@@ -36,6 +36,10 @@ def reglamento(request):
 
 def horario(request):
     return render(request, 'gym/horario.html')
+
+def reportes_exportacion(request):
+    return render(request, "gym/reportes_exportacion.html")
+
 
 def entrenadores(request):
     with connection.cursor() as cursor:
@@ -378,7 +382,7 @@ def gestion_usuarios(request):
         apellido_materno = request.POST.get("apellido_materno")
         no_control = request.POST.get("no_control")  # si aplica
         equipo = request.POST.get("equipo")  # si aplica (solo representativo)
-        numero_empleado = request.POST.get("numero_empleado")
+        numero_empleado = request.POST.get("numero_empleado")    
         if accion == "agregar":
             try:
                 
@@ -392,7 +396,7 @@ def gestion_usuarios(request):
                         tipo_usuario,
                         no_control,
                         numero_empleado,
-                        equipo  # nuevo parámetro
+                        equipo  # nuevo parámetro               
                     ])
 
                     # Recuperar el id del usuario recién insertado
@@ -894,7 +898,7 @@ def reportes_view(request):
         rows = _fetch_users_rows()
         labels, data, resumen, total = _build_counts_from_rows(rows)
     except Exception as e:
-        return render(request, "gym/reportes.html", {"error": f"Error al consultar la BD: {e}"})
+        return render(request, "gym/graficas.html", {"error": f"Error al consultar la BD: {e}"})
 
     context = {
         "labels_json": json.dumps(labels),
@@ -902,7 +906,7 @@ def reportes_view(request):
         "total": total,
         "resumen": resumen,
     }
-    return render(request, "gym/reportes.html", context)
+    return render(request, "gym/graficas.html", context)
 
 def reportes_data(request):
     """
@@ -918,88 +922,177 @@ def reportes_data(request):
 
 
 
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+from django.db import connection
+import io
 
-def generar_reporte_excel(request):
-    """
-    Genera y devuelve un archivo Excel (openpyxl) con:
-      - Hoja "Todos" (todos los usuarios con tipo)
-      - Hoja por cada tipo encontrada (Alumno, Representativo, Externo, ...)
-      - Hoja "Resumen" con conteos por tipo
-    Usa la vista vista_tipo_usuario y la tabla usuario de tu esquema.
-    """
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno,
-                       COALESCE(v.tipo, 'desconocido') AS tipo
-                FROM public.usuario u
-                LEFT JOIN public.vista_tipo_usuario v ON v.id_usuario = u.id_usuario
-                ORDER BY u.id_usuario;
-            """)
-            rows = cursor.fetchall()
-    except Exception as e:
-        return HttpResponse(f"Error al consultar la base de datos: {e}", status=500)
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+import io
+from django.http import HttpResponse
 
-    # Agrupar por tipo
-    tipos_map = {}
-    for r in rows:
-        tipo = r[4] or 'desconocido'
-        tipos_map.setdefault(tipo, []).append(r)
-
-    # Crear workbook
+# ==========================
+# REPORTE USUARIOS
+# ==========================
+def reporte_usuarios_excel(request):
     wb = Workbook()
-    ws_all = wb.active
-    ws_all.title = "Todos"
+    ws_base = wb.active
+    wb.remove(ws_base)  # eliminar hoja vacía
 
-    headers = ["id_usuario", "nombres", "apellido_paterno", "apellido_materno", "tipo"]
-    ws_all.append(headers)
-    for r in rows:
-        ws_all.append(list(r))
+    tipos_usuarios = [
+        ("Alumnos", "Alumno"),
+        ("Representativos", "Representativo"),
+        ("Externos", "Externo"),
+        ("Desconocidos", "Desconocido"),
+        ("Empleados", "Empleado"),
+    ]
 
-    # Ajustar anchos sencillos en hoja 'Todos'
-    for i, _ in enumerate(headers, start=1):
-        col = get_column_letter(i)
-        maxlen = 0
-        for cell in ws_all[col]:
-            cell_value = '' if cell.value is None else str(cell.value)
-            if len(cell_value) > maxlen:
-                maxlen = len(cell_value)
-        ws_all.column_dimensions[col].width = min(maxlen + 2, 50)
+    for nombre_hoja, tipo in tipos_usuarios:
+        query = f"""
+            SELECT *
+            FROM public.usuario
+            WHERE tipo_usuario = '{tipo}'
+            ORDER BY id_usuario;
+        """
 
-    # Crear hojas por tipo
-    for tipo, filas in tipos_map.items():
-        sheet_name = str(tipo)[:31]
-        ws = wb.create_sheet(title=sheet_name)
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            headers = [col[0] for col in cursor.description]
+
+        ws = wb.create_sheet(title=nombre_hoja)
         ws.append(headers)
-        for fr in filas:
-            ws.append(list(fr))
 
-        # Ajustar anchos en esta hoja
-        for i, _ in enumerate(headers, start=1):
-            col = get_column_letter(i)
-            maxlen = 0
-            for row in filas:
-                val = '' if row[i-1] is None else str(row[i-1])
-                if len(val) > maxlen:
-                    maxlen = len(val)
-            ws.column_dimensions[col].width = min(maxlen + 2, 50)
+        for row in rows:
+            ws.append(row)
 
-    # Hoja resumen
-    ws_res = wb.create_sheet(title="Resumen")
-    ws_res.append(["Tipo", "Conteo"])
-    for tipo, filas in tipos_map.items():
-        ws_res.append([tipo, len(filas)])
+        # Ajustar ancho de columnas (igual que tus otros excels)
+        for i in range(1, len(headers) + 1):
+            ws.column_dimensions[get_column_letter(i)].width = 22
 
-    # Guardar a BytesIO y devolver
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
+    # =========================
+    # RESPUESTA HTTP (igual que _exportar_excel)
+    # =========================
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
     response = HttpResponse(
-        buf.read(),
+        buffer.read(),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    response['Content-Disposition'] = 'attachment; filename="reporte_usuarios.xlsx"'
+    response["Content-Disposition"] = 'attachment; filename="usuarios.xlsx"'
     return response
+
+
+
+# ==========================
+# REPORTE ENTRADAS Y SALIDAS
+# ==========================
+def reporte_ingresos_excel(request):
+    query = """
+      SELECT 
+  CASE EXTRACT(DOW FROM fecha)
+    WHEN 1 THEN 'Lunes'
+    WHEN 2 THEN 'Martes'
+    WHEN 3 THEN 'Miércoles'
+    WHEN 4 THEN 'Jueves'
+    WHEN 5 THEN 'Viernes'
+  END AS dia,
+  EXTRACT(HOUR FROM fecha) AS hora,
+  COUNT(*) AS total
+FROM ingresos
+WHERE tipo = 'ENTRADA'
+  AND EXTRACT(DOW FROM fecha) BETWEEN 1 AND 5
+  AND EXTRACT(HOUR FROM fecha) BETWEEN 8 AND 23
+GROUP BY dia, hora
+ORDER BY 
+  MIN(EXTRACT(DOW FROM fecha)), 
+  hora;
+
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        headers = [col[0] for col in cursor.description]
+
+    return _exportar_excel("ingresos.xlsx", headers, rows)
+
+
+# ==========================
+# REPORTE MEMBRESÍAS ACTIVAS
+# ==========================
+def reporte_membresias_excel(request):
+    query = """
+        SELECT u.*
+        FROM usuario u
+        JOIN membresias m ON m.id_usuario = u.id_usuario
+        WHERE m.activa = true;
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        headers = [col[0] for col in cursor.description]
+
+    return _exportar_excel("membresias_activas.xlsx", headers, rows)
+
+
+# ==========================
+# EXCEL
+# ==========================
+def reporte_observaciones_excel(request):
+    query = """
+        SELECT *
+        FROM observaciones
+        ORDER BY fecha_publicacion DESC;
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        headers = [col[0] for col in cursor.description]
+
+    return _exportar_excel("observaciones.xlsx", headers, rows)
+
+
+# ==========================
+# FUNCIÓN GENÉRICA EXCEL
+# ==========================
+def _exportar_excel(nombre_archivo, headers, rows):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Reporte"
+
+    ws.append(headers)
+
+    for row in rows:
+        ws.append(row)
+
+    for i, col in enumerate(headers, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = 20
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
+    return response
+
+
+
+
+
+
+
 
 def actividad_eliminar(request, id_actividad):
     if request.method != "POST":

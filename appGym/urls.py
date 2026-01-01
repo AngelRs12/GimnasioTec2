@@ -4,7 +4,7 @@ from . import views
 urlpatterns = [
     path('', views.index, name='index'),
     path('usuarios/', views.usuarios, name='usuarios'),
-    path('reportes/', views.reportes, name='reportes'),
+    path('graficas/', views.graficas, name='graficas'),
     path('membresias/', views.membresias, name='membresias'),
     path('observaciones/', views.observaciones, name='observaciones'),
     path('entradas_salidas/', views.entradas_salidas, name='entradas_salidas'),
@@ -33,7 +33,21 @@ urlpatterns = [
     path("editar_membresia/", views.editar_membresia, name="editar_membresia"),
     path("eliminar_membresia/", views.eliminar_membresia, name="eliminar_membresia"),
     path('reportes/data/', views.reportes_data, name='reportes_data'),  # opcional, para AJAX
-    path('reportes/excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+   
+   
+   
+   path("reportes/exportar/", views.reportes_exportacion, name="reportes_exportacion"),
+   
+   
+path("reportes/usuarios/", views.reporte_usuarios_excel, name="reporte_usuarios_excel"),
+path("reportes/ingresos/", views.reporte_ingresos_excel, name="reporte_ingresos_excel"),
+path("reportes/membresias/", views.reporte_membresias_excel, name="reporte_membresias_excel"),
+path("reportes/observaciones/", views.reporte_observaciones_excel, name="reporte_observaciones_excel"),
+
+   
+   
+   
+   
     path('actividades/agregar/', views.actividad_agregar, name='actividad_agregar'),
     path('actividades/editar/<int:id_actividad>/', views.actividad_editar, name='actividad_editar'),
     path('actividades/eliminar/<int:id_actividad>/', views.actividad_eliminar, name='actividad_eliminar'),

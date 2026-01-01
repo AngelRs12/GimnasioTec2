@@ -1,0 +1,76 @@
+{% extends 'gym/base.html' %}
+
+{% block title %}Reportes | Gimnasio{% endblock %}
+
+{% block content %}
+<style>
+  .report-card {
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(20, 30, 60, 0.08);
+  }
+  .report-btn {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: #fff;
+    border: none;
+  }
+</style>
+
+<div class="container mt-5">
+  <div class="card report-card">
+    <div class="card-header text-center bg-primary text-white">
+      <h4 class="mb-0">Exportación de Reportes</h4>
+      <p class="mb-0">Descarga información del sistema en formato Excel</p>
+    </div>
+
+    <div class="card-body">
+      <div class="row g-4">
+
+        <!-- Usuarios -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h5 class="fw-bold">Usuarios registrados</h5>
+            <p class="text-muted">Todos los usuarios del sistema.</p>
+            <a href="{% url 'reporte_usuarios_excel' %}" class="btn report-btn btn-sm">
+              Descargar Excel
+            </a>
+          </div>
+        </div>
+
+        <!-- Entradas y salidas -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h5 class="fw-bold">Entradas y salidas</h5>
+            <p class="text-muted">Historial completo de ingresos.</p>
+            <a href="{% url 'reporte_ingresos_excel' %}" class="btn report-btn btn-sm">
+              Descargar Excel
+            </a>
+          </div>
+        </div>
+
+        <!-- Membresías -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h5 class="fw-bold">Usuarios con membresía activa</h5>
+            <p class="text-muted">Usuarios que cuentan con membresía vigente.</p>
+            <a href="{% url 'reporte_membresias_excel' %}" class="btn report-btn btn-sm">
+              Descargar Excel
+            </a>
+          </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h5 class="fw-bold">Observaciones</h5>
+            <p class="text-muted">Todas las observaciones registradas.</p>
+            <a href="{% url 'reporte_observaciones_excel' %}" class="btn report-btn btn-sm">
+              Descargar Excel
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

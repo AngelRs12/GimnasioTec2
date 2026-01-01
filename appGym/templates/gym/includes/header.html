@@ -176,8 +176,13 @@
   <i class="fa-solid fa-credit-card"></i> Membresías
 </a>
 
-<a href="{% url 'reportes' %}"
-   class="{% if request.resolver_match.url_name == 'reportes' %}active{% endif %}">
+<a href="{% url 'graficas' %}"
+   class="{% if request.resolver_match.url_name == 'graficas' %}active{% endif %}">
+  <i class="fa-solid fa-chart-column"></i> Graficas
+</a>
+
+<a href="{% url 'reportes_exportacion' %}"
+   class="{% if request.resolver_match.url_name == 'reportes_exportacion' %}active{% endif %}">
   <i class="fa-solid fa-chart-column"></i> Reportes
 </a>
 
@@ -227,6 +232,30 @@
 <a href="{% url 'sesion' %}"
    class="{% if request.resolver_match.url_name == 'sesion' %}active{% endif %}">
   <i class="fa-solid fa-plug"></i> Iniciar Sesión
+</a>
+<a href="{% url 'reglamento' %}"
+   class="{% if request.resolver_match.url_name == 'reglamento' %}active{% endif %}">
+  <i class="fa-solid fa-file-lines"></i> Reglamento
+</a>
+
+<a href="{% url 'horario' %}"
+   class="{% if request.resolver_match.url_name == 'horario' %}active{% endif %}">
+  <i class="fa-solid fa-clock"></i> Horario
+</a>
+
+<a href="{% url 'entrenadores' %}"
+   class="{% if request.resolver_match.url_name == 'entrenadores' %}active{% endif %}">
+  <i class="fa-solid fa-dumbbell"></i> Entrenadores
+</a>
+
+<a href="{% url 'actividades' %}"
+   class="{% if request.resolver_match.url_name == 'actividades' %}active{% endif %}">
+  <i class="fa-solid fa-person-running"></i> Actividades
+</a>
+
+<a href="{% url 'acercade' %}"
+   class="{% if request.resolver_match.url_name == 'acercade' %}active{% endif %}">
+  <i class="fa-solid fa-circle-info"></i> Acerca de
 </a>
 
 
