@@ -33,21 +33,11 @@ urlpatterns = [
     path("editar_membresia/", views.editar_membresia, name="editar_membresia"),
     path("eliminar_membresia/", views.eliminar_membresia, name="eliminar_membresia"),
     path('reportes/data/', views.reportes_data, name='reportes_data'),  # opcional, para AJAX
-   
-   
-   
-   path("reportes/exportar/", views.reportes_exportacion, name="reportes_exportacion"),
-   
-   
-path("reportes/usuarios/", views.reporte_usuarios_excel, name="reporte_usuarios_excel"),
-path("reportes/ingresos/", views.reporte_ingresos_excel, name="reporte_ingresos_excel"),
-path("reportes/membresias/", views.reporte_membresias_excel, name="reporte_membresias_excel"),
-path("reportes/observaciones/", views.reporte_observaciones_excel, name="reporte_observaciones_excel"),
-
-   
-   
-   
-   
+    path("reportes/exportar/", views.reportes_exportacion, name="reportes_exportacion"),
+    path("reportes/usuarios/", views.reporte_usuarios_excel, name="reporte_usuarios_excel"),
+    path("reportes/ingresos/", views.reporte_ingresos_excel, name="reporte_ingresos_excel"),
+    path("reportes/membresias/", views.reporte_membresias_excel, name="reporte_membresias_excel"),
+    path("reportes/observaciones/", views.reporte_observaciones_excel, name="reporte_observaciones_excel"),
     path('actividades/agregar/', views.actividad_agregar, name='actividad_agregar'),
     path('actividades/editar/<int:id_actividad>/', views.actividad_editar, name='actividad_editar'),
     path('actividades/eliminar/<int:id_actividad>/', views.actividad_eliminar, name='actividad_eliminar'),
@@ -61,4 +51,6 @@ path("reportes/observaciones/", views.reporte_observaciones_excel, name="reporte
     path('buscar_usuario_membresia/', views.buscar_usuario_membresia, name='buscar_usuario_membresia'),
     path("asignar-membresia/",views.asignar_membresia_usuario_view, name="asignar_membresia_usuario"),
     path("actualizar_membresia/",views.actualizar_membresia, name="actualizar_membresia"),
+    path("contador_gimnasio/",views.contador_gimnasio, name="contador_gimnasio"),
+    path("agregar_seccion/",views.agregar_seccion, name="agregar_seccion"),
 ]

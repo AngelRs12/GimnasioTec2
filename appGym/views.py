@@ -32,7 +32,35 @@ def observaciones(request):
     return render(request, 'gym/observaciones.html')
 
 def reglamento(request):
-    return render(request, 'gym/reglamento.html')
+    with connection.cursor() as cursor:
+        # Headers
+        cursor.execute("""
+            SELECT tipo, descripcion
+            FROM reglas_header
+        """)
+        headers = cursor.fetchall()
+
+        # Items
+        cursor.execute("""
+            SELECT tipo, regla
+            FROM reglas_item
+        """)
+        items = cursor.fetchall()
+
+    # Agrupar reglas por tipo
+    reglas = []
+    for tipo, descripcion in headers:
+        reglas.append({
+            "tipo": tipo,
+            "descripcion": descripcion,
+            "items": [r for t, r in items if t == tipo]
+        })
+
+    return render(request, "gym/reglamento.html", {
+        "reglas": reglas
+    })
+
+
 
 def horario(request):
     return render(request, 'gym/horario.html')
@@ -1465,3 +1493,18 @@ def actualizar_membresia(request):
             }, status=500)
 
     return JsonResponse({"error": "Método no permitido"}, status=405)
+
+
+def contador_gimnasio(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT public.contador_gimnasio_hoy();")
+        total = cursor.fetchone()[0]
+
+    return JsonResponse({"total": total})   
+
+def agregar_seccion(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT public.contador_gimnasio_hoy();")
+        total = cursor.fetchone()[0]
+
+    return JsonResponse({"total": total})   

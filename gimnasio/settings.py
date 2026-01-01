@@ -79,9 +79,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'Gimnasio',          # Nombre de tu base de datos
         'USER': 'postgres',        # Usuario de PostgreSQL
-        'PASSWORD': '2004',      # Contraseña del usuario
+        'PASSWORD': '12345',      # Contraseña del usuario
         'HOST': 'localhost',      # O la IP del servidor
-        'PORT': '5432',           # Puerto por defecto de PostgreSQL
+        'PORT': '5433',           # Puerto por defecto de PostgreSQL
 }
 }
 
