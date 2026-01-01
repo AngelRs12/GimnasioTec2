@@ -32,33 +32,7 @@ def observaciones(request):
     return render(request, 'gym/observaciones.html')
 
 def reglamento(request):
-    with connection.cursor() as cursor:
-        # Headers
-        cursor.execute("""
-            SELECT tipo, descripcion
-            FROM reglas_header
-        """)
-        headers = cursor.fetchall()
-
-        # Items
-        cursor.execute("""
-            SELECT tipo, regla
-            FROM reglas_item
-        """)
-        items = cursor.fetchall()
-
-    # Agrupar reglas por tipo
-    reglas = []
-    for tipo, descripcion in headers:
-        reglas.append({
-            "tipo": tipo,
-            "descripcion": descripcion,
-            "items": [r for t, r in items if t == tipo]
-        })
-
-    return render(request, "gym/reglamento.html", {
-        "reglas": reglas
-    })
+    return render(request, "gym/reglamento.html")
 
 
 
@@ -1503,8 +1477,107 @@ def contador_gimnasio(request):
     return JsonResponse({"total": total})   
 
 def agregar_seccion(request):
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT public.contador_gimnasio_hoy();")
-        total = cursor.fetchone()[0]
+    if request.method == "POST":
+        tipo = request.POST.get("tipo")
+        descripcion = request.POST.get("descripcion")
 
-    return JsonResponse({"total": total})   
+        if not tipo or not descripcion:
+            return JsonResponse({
+                "success": False,
+                "mensaje": "Datos incompletos"
+            })
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT insertar_regla_header(%s, %s);",
+                    [tipo, descripcion]
+                )
+                mensaje = cursor.fetchone()[0]
+
+            if mensaje != "OK":
+                return JsonResponse({
+                    "success": False,
+                    "mensaje": mensaje
+                })
+            return JsonResponse({
+                "success": True,
+                "mensaje": "Seccion agregada correctamente"
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "mensaje": str(e)
+            })
+        
+def reglas_json(request):
+    with connection.cursor() as cursor:
+        # Headers
+        cursor.execute("""
+            SELECT tipo, descripcion
+            FROM reglas_header
+        """)
+        headers = cursor.fetchall()
+
+        # Items
+        cursor.execute("""
+            SELECT tipo, regla
+            FROM reglas_item
+        """)
+        items = cursor.fetchall()
+
+    # Agrupar reglas por tipo
+    reglas = []
+    for tipo, descripcion in headers:
+        reglas.append({
+            "tipo": tipo,
+            "descripcion": descripcion,
+            "items": [r for t, r in items if t == tipo]
+        })
+
+    return JsonResponse({"reglas": reglas})
+
+
+def eliminar_seccion(request):
+    if request.method == "POST":
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT public.contador_gimnasio_hoy();")
+                total = cursor.fetchone()[0]
+
+    return JsonResponse({"total": total})     
+
+
+def guardar_seccion(request):
+    if request.method == "POST":
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT public.contador_gimnasio_hoy();")
+                total = cursor.fetchone()[0]
+
+    return JsonResponse({"total": total})     
+
+def reglas_por_seccion(request, tipo):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id_regla, regla
+                FROM reglas_item
+                WHERE tipo = %s
+                ORDER BY id_regla
+            """, [tipo])
+
+            reglas = [
+                {"id": r[0], "regla": r[1]}
+                for r in cursor.fetchall()
+            ]
+
+        return JsonResponse({
+            "success": True,
+            "reglas": reglas
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "mensaje": str(e)
+        }, status=500)

@@ -53,4 +53,11 @@ urlpatterns = [
     path("actualizar_membresia/",views.actualizar_membresia, name="actualizar_membresia"),
     path("contador_gimnasio/",views.contador_gimnasio, name="contador_gimnasio"),
     path("agregar_seccion/",views.agregar_seccion, name="agregar_seccion"),
+    path("reglas-json/", views.reglas_json, name="reglas_json"),
+    path("eliminar_seccion/",views.eliminar_seccion, name="eliminar_seccion"),
+    path("guardar_seccion/",views.guardar_seccion, name="guardar_seccion"),
+    path("reglas/seccion/<str:tipo>/",views.reglas_por_seccion, name="reglas_por_seccion"),
+
+
+
 ]

@@ -14,6 +14,12 @@
 
     <div class="card-body p-4">
       <div class="text-center mb-4">
+          <div id="alertGlobal"
+     class="alert alert-dismissible fade d-none"
+     role="alert">
+  <span id="alertGlobalMsg"></span>
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
         <h4 class="mt-2 fw-bold">Lea atentamente las siguientes reglas</h4>
         <p class="text-muted fs-5">El cumplimiento de estas normas garantiza un ambiente ordenado, seguro y respetuoso para todos los usuarios.</p>
       </div>
@@ -29,35 +35,10 @@
 </div>
 {% endif %}
       <!-- Cuadrícula 3x2 -->
-      <div class="row g-4 reglamento-grid">
-
-  {% for regla in reglas %}
-  <div class="col-md-4">
-    <div class="card h-100 shadow-sm border-0">
-      <div class="card-body">
-
-        <h5 class="section-title">{{ regla.tipo }}</h5>
-        <p class="text-muted">{{ regla.descripcion }}</p>
-
-        <ul class="reglamento-list">
-          {% for item in regla.items %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
-
-        {% if request.session.usuario_admin %}
-        <div class="mt-3 text-end">
-          <a>
-            Editar
-          </a>
-        </div>
-        {% endif %}
-
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-
+      <div id="reglasGrid" class="row g-4 reglamento-grid">
+<div id="reglasGrid" class="row g-4 reglamento-grid">
+  <!-- Se llena desde JS -->
+</div>
 </div>
 
 
@@ -85,9 +66,12 @@
         <h5 class="modal-title">Agregar regla del reglamento</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-
-      <form method="POST" action="{% url 'agregar_seccion' %}">
-        {% csrf_token %}
+<form id="formAgregarSeccion">
+  {% csrf_token %}
+  <div id="alertModal"
+     class="alert alert-danger d-none"
+     role="alert">
+</div>
         <div class="modal-body">
 
           <div class="mb-3">
@@ -127,5 +111,274 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="modalEliminarSeccion">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Eliminar sección</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p id="textoEliminarSeccion"></p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmarEliminarSeccion()">
+          Eliminar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalEditarSeccion">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Editar sección</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="listaReglasEditar"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button class="btn btn-success" onclick="guardarCambiosSeccion()">
+          Guardar cambios
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let seccionAEliminar = null;
+
+function abrirEliminarSeccion(id, nombre) {
+  seccionAEliminar = id;
+  document.getElementById("textoEliminarSeccion").textContent =
+    `¿Seguro que deseas eliminar la sección "${nombre}" y todas sus reglas?`;
+
+  new bootstrap.Modal(
+    document.getElementById("modalEliminarSeccion")
+  ).show();
+}
+
+async function confirmarEliminarSeccion() {
+  const resp = await fetch("{% url 'eliminar_seccion' %}", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id: seccionAEliminar })
+  });
+
+  const data = await resp.json();
+
+  if (data.success) {
+    cargarReglas();
+    bootstrap.Modal.getInstance(
+      document.getElementById("modalEliminarSeccion")
+    ).hide();
+  }
+}
+let seccionEditando = null;
+let reglasEditadas = [];
+
+async function abrirEditarSeccion(tipo) {
+  seccionEditando = tipo;
+
+  const tipoEncoded = encodeURIComponent(tipo);
+
+  const resp = await fetch(`/reglas/seccion/${tipoEncoded}/`);
+  const data = await resp.json();
+
+  reglasEditadas = data.reglas;
+
+  const contenedor = document.getElementById("listaReglasEditar");
+  contenedor.innerHTML = "";
+
+  reglasEditadas.forEach(r => {
+    contenedor.innerHTML += `
+      <div class="mb-3" data-id="${r.id}">
+        <textarea class="form-control regla-texto"
+                  rows="2">${r.texto}</textarea>
+        <div class="text-end mt-1">
+          <button class="btn btn-sm btn-danger"
+                  onclick="eliminarRegla(${r.id}, this)">
+            Eliminar
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  new bootstrap.Modal(
+    document.getElementById("modalEditarSeccion")
+  ).show();
+}
+async function guardarCambiosSeccion() {
+  const reglas = [];
+
+  document.querySelectorAll(".regla-texto").forEach((t, i) => {
+    reglas.push({
+      id: reglasEditadas[i]?.id || null,
+      texto: t.value
+    });
+  });
+
+  const resp = await fetch("{% url 'guardar_seccion' %}", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+  tipo: seccionEditando,
+  reglas
+})
+
+  });
+
+  const data = await resp.json();
+
+  if (data.success) {
+    cargarReglas();
+    bootstrap.Modal.getInstance(
+      document.getElementById("modalEditarSeccion")
+    ).hide();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  cargarReglas();
+});
+
+document.getElementById("formAgregarSeccion").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const form = e.target;
+  const formData = new FormData(form);
+
+  const alertGlobal = document.getElementById("alertGlobal");
+  const alertGlobalMsg = document.getElementById("alertGlobalMsg");
+
+  const alertModal = document.getElementById("alertModal");
+
+  // Limpia alert modal siempre
+  alertModal.classList.add("d-none");
+  alertModal.textContent = "";
+
+  try {
+    const resp = await fetch("{% url 'agregar_seccion' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": formData.get("csrfmiddlewaretoken")
+      },
+      body: formData
+    });
+
+    const data = await resp.json();
+
+    if (data.success) {
+
+      /* =====================
+         ✅ ÉXITO → ALERT GLOBAL
+         ===================== */
+      alertGlobal.classList.remove("d-none", "alert-danger");
+      alertGlobal.classList.add("alert-success", "show");
+      alertGlobalMsg.textContent = data.mensaje;
+
+      form.reset();
+
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("modalAgregarSeccion")
+      );
+      modal.hide();
+
+      await cargarReglas();
+
+      setTimeout(() => {
+        alertGlobal.classList.remove("show");
+        setTimeout(() => alertGlobal.classList.add("d-none"), 300);
+      }, 4000);
+
+    } else {
+
+      /* =====================
+         ❌ ERROR → ALERT MODAL
+         ===================== */
+      alertModal.textContent = data.mensaje;
+      alertModal.classList.remove("d-none");
+    }
+
+  } catch (error) {
+    alertModal.textContent = "Error inesperado al guardar la sección";
+    alertModal.classList.remove("d-none");
+  }
+});
+
+async function cargarReglas() {
+  const grid = document.getElementById("reglasGrid");
+  if (!grid) return;
+
+  try {
+    const resp = await fetch("{% url 'reglas_json' %}");
+    const data = await resp.json();
+
+    grid.innerHTML = ""; // 🔥 Limpia todo
+
+    data.reglas.forEach(regla => {
+      grid.innerHTML += `
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+
+              <h5 class="section-title">${regla.tipo}</h5>
+              <p class="text-muted">${regla.descripcion}</p>
+
+              <ul class="reglamento-list">
+                ${regla.items.map(i => `<li>${i}</li>`).join("")}
+              </ul>
+
+              {% if request.session.usuario_admin %}
+              <div class="mt-3 d-flex justify-content-end gap-2">
+              
+ <button class="btn btn-sm btn-outline-primary"
+        onclick="abrirEditarSeccion('${regla.tipo}')">
+  Editar
+</button>
+ <button class="btn btn-sm btn-outline-danger"
+          onclick="abrirEliminarSeccion(${regla.id}, '${regla.tipo}')">
+    Eliminar
+  </button>
+</div>
+
+
+              {% endif %}
+
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+  } catch (err) {
+    console.error("Error al cargar reglas", err);
+  }
+}
+</script>
 
 {% endblock %}
