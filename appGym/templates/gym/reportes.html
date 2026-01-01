@@ -54,7 +54,6 @@
 
       <div class="d-flex justify-content-end mb-3">
         <button id="btnRefresh" class="btn btn-sm btn-outline-primary me-2">Actualizar</button>
-        <a href="{% url 'generar_reporte_excel' %}" class="btn btn-sm download-btn">Descargar Excel</a>
       </div>
 
       <div class="row g-4">
@@ -113,30 +112,6 @@
   </div>
 </div>
 
-<div class="mb-3 text-center">
-  <label class="fw-bold me-2">Día:</label>
-  <select id="diaSelect" class="form-select d-inline-block w-auto">
-    <option value="1">Lunes</option>
-    <option value="2">Martes</option>
-    <option value="3">Miércoles</option>
-    <option value="4">Jueves</option>
-    <option value="5">Viernes</option>
-  </select>
-</div>
-
-
- <!-- HISTOGRAMA USO DEL GIMNASIO POR DÍA Y HORA -->
-<div class="col-12 mt-4">
-  <div class="chart-wrap" style="height: 380px;">
-    <div style="width:100%; height:100%;">
-      <h5 class="fw-bold text-center mb-3">Uso del gimnasio</h5>
-      <canvas id="usoPorHoraChart"></canvas>
-      <div id="usoPorHoraNoData" class="text-center text-muted" style="display:none;">
-        No hay datos para mostrar.
-      </div>
-    </div>
-  </div>
-</div>
 
 
 

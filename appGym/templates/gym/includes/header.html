@@ -2,6 +2,13 @@
 {% load bootstrap5 %}
 <link rel="stylesheet" href="{% static 'styles/header.css' %}">
 <link rel="stylesheet" href="{% static 'styles/footer.css' %}">
+
+<!-- Font Awesome -->
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer">
+
 <style>
   /* Estilos para la barra lateral */
   .sidebar {
@@ -23,7 +30,6 @@
     transform: translateX(0);
   }
 
-  /* Encabezado del menú */
   .sidebar-header {
     display: flex;
     align-items: center;
@@ -39,7 +45,6 @@
     margin: 0;
   }
 
-  /* Botón para cerrar */
   .close-btn {
     background: none;
     border: none;
@@ -52,7 +57,6 @@
     color: #adb5bd;
   }
 
-  /* Enlaces */
   .sidebar a {
     display: block;
     color: white;
@@ -65,7 +69,12 @@
     background-color: #343a40;
   }
 
-  /* Botón de la barra lateral */
+  .sidebar a i {
+    width: 22px;
+    margin-right: 8px;
+    text-align: center;
+  }
+
   .sidebar-toggle {
     background: none;
     border: none;
@@ -73,90 +82,155 @@
     font-size: 22px;
     cursor: pointer;
     margin-right: 10px;
+    
+    .sidebar a.active {
+  background-color: #0d6efd;
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar a i {
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.sidebar a:hover i {
+  transform: translateX(6px) scale(1.15);
+  color: #0d6efd;
+}
+
   }
+
+  .sidebar a.active {
+  background-color: #0d6efd;
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar a i {
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.sidebar a:hover i {
+  transform: translateX(6px) scale(1.15);
+  color: #0d6efd;
+}
+
 </style>
 
-<!-- Navbar con botón de barra lateral -->
- <div class="py-3 head-logos">
+<!-- Navbar -->
+<div class="py-3 head-logos">
   <div class="d-flex justify-content-center align-items-center flex-wrap gap-5">
     <img src="{% static 'gym/images/ITCJ logo.png' %}" height="60">
     <img src="{% static 'gym/images/logo sep.png' %}" height="60">
-    <img src="{% static 'gym/images/LOGO TECNM.png' %}" alt="img 4" height="60">
-
+    <img src="{% static 'gym/images/LOGO TECNM.png' %}" height="60">
   </div>
 </div>
 
 <nav class="navbar navbar-expand-lg navbar-dark fondo">
   <div class="">
-    <!-- Botón para abrir/cerrar barra -->
-    <button id="sidebarToggle" class="sidebar-toggle">
-      ☰
-    </button>
+    <button id="sidebarToggle" class="sidebar-toggle">☰</button>
 
-    <!-- Logo -->
-    <img src="{% static 'gym/images/logo.png' %}"
-         alt="Logo Gimnasio"
-         width="40" height="40"
+    <img src="{% static 'gym/images/logoPag.png' %}" width="40" height="40"
          class="me-2 rounded-circle">
 
-    <!-- Texto -->
-    <span class="text-white fs-5 fw-bold">Sistema de Control del Gimnasio del ITCJ</span>
-
-    <!-- Menú normal 
-    <div class="collapse navbar-collapse" id="menu">
-      <ul class="navbar-nav ms-auto">
-        <li class="text-white fs-5 fw-bold"><a href="{% url 'index' %}" class="nav-link">Inicio</a></li>
-        <li class="text-white fs-5 fw-bold"><a href="{% url 'reglamento' %}" class="nav-link">Reglamento</a></li>
-        <li class="text-white fs-5 fw-bold"><a href="{% url 'horario' %}" class="nav-link">Horario</a></li>
-        <li class="text-white fs-5 fw-bold"><a href="{% url 'entrenadores' %}" class="nav-link">Entrenadores</a></li>
-        <li class="text-white fs-5 fw-bold"><a href="{% url 'actividades' %}" class="nav-link">Actividades</a></li>
-        <li class="text-white fs-5 fw-bold"><a href="{% url 'acercade' %}" class="nav-link">Acerca de</a></li>
-      </ul>
-    </div>
-    -->
+    <span class="text-white fs-5 fw-bold">
+      Sistema de Control del Gimnasio del ITCJ
+    </span>
   </div>
 </nav>
+
 <!-- Barra lateral -->
 <div id="sidebar" class="sidebar">
 
-  <!-- Encabezado con título y botón -->
-  <div class="sidebar-header"style="justify-content: space-evenly; !important">
-  
-    
+  <div class="sidebar-header" style="justify-content: space-evenly;">
     <button id="closeSidebar" class="close-btn">&times;</button>
-    
+
     {% if request.session.usuario_admin %}
-      <span class="sidebar-title">Bienvenido: <br>{{ request.session.usuario_admin }}</span>
+      <span class="sidebar-title">
+        Bienvenido:<br>{{ request.session.usuario_admin }}
+      </span>
     {% else %}
       <span class="sidebar-title">Menú</span>
     {% endif %}
   </div>
 
   {% if request.session.usuario_admin %}
-      <!-- Sesión iniciada -->
-       
- <!-- Enlaces del menú -->
-<a href="{% url 'index' %}">🏠 Inicio</a>
-<a href="{% url 'entradas_salidas' %}">🚪 Entradas y Salidas</a>
-<a href="{% url 'usuarios' %}">👥 Usuarios</a>
-<a href="{% url 'membresias' %}">💳 Membresías</a>
-<a href="{% url 'reportes' %}">📊 Reportes</a>
-<a href="{% url 'observaciones' %}">🗒️ Observaciones</a>
 
-<a href="{% url 'administradores' %}">🆕 Administradores</a>
+<a href="{% url 'index' %}"
+   class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+  <i class="fa-solid fa-house"></i> Inicio
+</a>
+
+<a href="{% url 'entradas_salidas' %}"
+   class="{% if request.resolver_match.url_name == 'entradas_salidas' %}active{% endif %}">
+  <i class="fa-solid fa-door-open"></i> Entradas y Salidas
+</a>
+
+<a href="{% url 'usuarios' %}"
+   class="{% if request.resolver_match.url_name == 'usuarios' %}active{% endif %}">
+  <i class="fa-solid fa-users"></i> Usuarios
+</a>
+
+<a href="{% url 'membresias' %}"
+   class="{% if request.resolver_match.url_name == 'membresias' %}active{% endif %}">
+  <i class="fa-solid fa-credit-card"></i> Membresías
+</a>
+
+<a href="{% url 'reportes' %}"
+   class="{% if request.resolver_match.url_name == 'reportes' %}active{% endif %}">
+  <i class="fa-solid fa-chart-column"></i> Reportes
+</a>
+
+<a href="{% url 'observaciones' %}"
+   class="{% if request.resolver_match.url_name == 'observaciones' %}active{% endif %}">
+  <i class="fa-solid fa-note-sticky"></i> Observaciones
+</a>
+
+<a href="{% url 'administradores' %}"
+   class="{% if request.resolver_match.url_name == 'administradores' %}active{% endif %}">
+  <i class="fa-solid fa-user-shield"></i> Administradores
+</a>
+
+<hr>
+
+<a href="{% url 'reglamento' %}"
+   class="{% if request.resolver_match.url_name == 'reglamento' %}active{% endif %}">
+  <i class="fa-solid fa-file-lines"></i> Reglamento
+</a>
+
+<a href="{% url 'horario' %}"
+   class="{% if request.resolver_match.url_name == 'horario' %}active{% endif %}">
+  <i class="fa-solid fa-clock"></i> Horario
+</a>
+
+<a href="{% url 'entrenadores' %}"
+   class="{% if request.resolver_match.url_name == 'entrenadores' %}active{% endif %}">
+  <i class="fa-solid fa-dumbbell"></i> Entrenadores
+</a>
+
+<a href="{% url 'actividades' %}"
+   class="{% if request.resolver_match.url_name == 'actividades' %}active{% endif %}">
+  <i class="fa-solid fa-person-running"></i> Actividades
+</a>
+
+<a href="{% url 'acercade' %}"
+   class="{% if request.resolver_match.url_name == 'acercade' %}active{% endif %}">
+  <i class="fa-solid fa-circle-info"></i> Acerca de
+</a>
 
 <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">
-  🔒 Cerrar Sesión
+  <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
 </a>
-{% else %}
-<a href="{% url 'sesion' %}">🔌 Iniciar Sesión</a>
-{% endif %}
 
-      <a href="{% url 'reglamento' %}" class="">Reglamento</a>
-      <a href="{% url 'horario' %}" class="">Horario</a>
-      <a href="{% url 'entrenadores' %}" class="">Entrenadores</a>
-      <a href="{% url 'actividades' %}" class="">Actividades</a>
-      <a href="{% url 'acercade' %}" class="">Acerca de</a>
+{% else %}
+
+<a href="{% url 'sesion' %}"
+   class="{% if request.resolver_match.url_name == 'sesion' %}active{% endif %}">
+  <i class="fa-solid fa-plug"></i> Iniciar Sesión
+</a>
+
+
+{% endif %}
 </div>
 
 <script>

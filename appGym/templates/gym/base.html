@@ -3,12 +3,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+{% load static %}
+<link rel="icon" type="image/png" href="{% static 'gym/images/logo.png' %}">
+
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Mi Gimnasio{% endblock %}</title>
 
   {% bootstrap_css %}
   <link rel="stylesheet" href="{% static 'styles/general.css' %}">
+  
 </head>
 <body class="d-flex flex-column min-vh-100">
 
