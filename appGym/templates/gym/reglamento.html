@@ -73,6 +73,10 @@
      role="alert">
 </div>
         <div class="modal-body">
+<div id="alertModal"
+     class="alert alert-danger d-none"
+     role="alert">
+</div>
 
           <div class="mb-3">
             <label class="form-label">Sección</label>
@@ -122,6 +126,11 @@
       </div>
 
       <div class="modal-body">
+        <div id="alertEliminar"
+     class="alert alert-danger d-none"
+     role="alert">
+</div>
+
         <p id="textoEliminarSeccion"></p>
       </div>
 
@@ -144,8 +153,19 @@
         <h5 class="modal-title">Editar sección</h5>
         <button class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-
       <div class="modal-body">
+        <div id="alertEditar"
+     class="alert alert-danger d-none"
+     role="alert">
+</div>
+
+  <div class="d-flex justify-content mb-3">
+    <button type="button"
+            class="btn btn-success"
+            onclick="agregarNuevaRegla()">
+      + Agregar regla
+    </button>
+  </div>
         <div id="listaReglasEditar"></div>
       </div>
 
@@ -164,36 +184,101 @@
 
 <script>
 let seccionAEliminar = null;
+function validarTextareasAlfanumerico(contenedorSelector) {
+  const regex = /[a-zA-Z0-9]/;
 
-function abrirEliminarSeccion(id, nombre) {
-  seccionAEliminar = id;
+  const textareas = document.querySelectorAll(
+    `${contenedorSelector} textarea`
+  );
+
+  for (const textarea of textareas) {
+    const valor = textarea.value.trim();
+
+    if (!regex.test(valor)) {
+      textarea.focus();
+      textarea.classList.add("is-invalid");
+      return false;
+    } else {
+      textarea.classList.remove("is-invalid");
+    }
+  }
+
+  return true;
+}
+
+function abrirEliminarSeccion(tipo) {
+  seccionAEliminar = tipo;
+
   document.getElementById("textoEliminarSeccion").textContent =
-    `¿Seguro que deseas eliminar la sección "${nombre}" y todas sus reglas?`;
+    `¿Seguro que deseas eliminar la sección "${tipo}" y todas sus reglas?`;
 
   new bootstrap.Modal(
     document.getElementById("modalEliminarSeccion")
   ).show();
 }
+function eliminarRegla(id, btn) {
+  btn.closest("[data-id]").remove();
+  reglasEditadas = reglasEditadas.filter(r => r.id !== id);
+}
+function mostrarErrorModal(idAlert, mensaje) {
+  const alert = document.getElementById(idAlert);
+  alert.textContent = mensaje;
+  alert.classList.remove("d-none");
+}
+
+function agregarNuevaRegla() {
+  const contenedor = document.getElementById("listaReglasEditar");
+
+  const div = document.createElement("div");
+  div.className = "mb-3 d-flex gap-2 align-items-start";
+  div.dataset.id = ""; // 🔹 sin ID = regla nueva
+
+  div.innerHTML = `
+    <textarea class="form-control regla-texto"
+              rows="2"
+              required
+              style="resize:none"
+              placeholder="Nueva regla"></textarea>
+
+    <button class="btn btn-sm btn-danger mt-1"
+            onclick="this.closest('[data-id]').remove()">
+      Eliminar
+    </button>
+  `;
+
+  contenedor.prepend(div); // 🔥 se agrega al inicio
+}
 
 async function confirmarEliminarSeccion() {
+  const alertEliminar = document.getElementById("alertEliminar");
+  alertEliminar.classList.add("d-none");
+
   const resp = await fetch("{% url 'eliminar_seccion' %}", {
     method: "POST",
     headers: {
       "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ id: seccionAEliminar })
+    body: JSON.stringify({
+      tipo: seccionAEliminar
+    })
   });
 
   const data = await resp.json();
 
   if (data.success) {
-    cargarReglas();
     bootstrap.Modal.getInstance(
       document.getElementById("modalEliminarSeccion")
     ).hide();
+
+    cargarReglas();
+    mostrarAlertGlobal(data.mensaje, "success");
+
+  } else {
+    mostrarErrorModal("alertEliminar", data.mensaje);
   }
 }
+
 let seccionEditando = null;
 let reglasEditadas = [];
 
@@ -210,33 +295,51 @@ async function abrirEditarSeccion(tipo) {
   const contenedor = document.getElementById("listaReglasEditar");
   contenedor.innerHTML = "";
 
-  reglasEditadas.forEach(r => {
-    contenedor.innerHTML += `
-      <div class="mb-3" data-id="${r.id}">
-        <textarea class="form-control regla-texto"
-                  rows="2">${r.texto}</textarea>
-        <div class="text-end mt-1">
-          <button class="btn btn-sm btn-danger"
-                  onclick="eliminarRegla(${r.id}, this)">
-            Eliminar
-          </button>
-        </div>
-      </div>
-    `;
-  });
+ reglasEditadas.forEach(r => {
+  contenedor.innerHTML += `
+    <div class="mb-3 d-flex gap-2 align-items-start" data-id="${r.id}">
+
+      <textarea class="form-control regla-texto"
+                style="resize:none"
+                required
+                rows="2">${r.regla}</textarea>
+
+      <button class="btn btn-sm btn-danger mt-1"
+              onclick="eliminarRegla(${r.id}, this)">
+        Eliminar
+      </button>
+
+    </div>
+  `;
+});
 
   new bootstrap.Modal(
     document.getElementById("modalEditarSeccion")
   ).show();
 }
 async function guardarCambiosSeccion() {
+  const alertEditar = document.getElementById("alertEditar");
+  alertEditar.classList.add("d-none");
+  alertEditar.textContent = "";
+
+  // ✅ VALIDACIÓN ANTES DE GUARDAR
+  const valido = validarTextareasAlfanumerico("#listaReglasEditar");
+
+  if (!valido) {
+    mostrarErrorModal(
+      "alertEditar",
+      "Todas las reglas deben contener al menos un carácter alfanumérico."
+    );
+    return; // ⛔ NO sigue
+  }
+
   const reglas = [];
 
-  document.querySelectorAll(".regla-texto").forEach((t, i) => {
-    reglas.push({
-      id: reglasEditadas[i]?.id || null,
-      texto: t.value
-    });
+  document.querySelectorAll("#listaReglasEditar [data-id]").forEach(div => {
+    const id = div.dataset.id || null;
+    const texto = div.querySelector(".regla-texto").value.trim();
+
+    reglas.push({ id, texto });
   });
 
   const resp = await fetch("{% url 'guardar_seccion' %}", {
@@ -246,25 +349,43 @@ async function guardarCambiosSeccion() {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-  tipo: seccionEditando,
-  reglas
-})
-
+      seccion: seccionEditando,
+      reglas
+    })
   });
 
   const data = await resp.json();
 
   if (data.success) {
-    cargarReglas();
     bootstrap.Modal.getInstance(
       document.getElementById("modalEditarSeccion")
     ).hide();
+
+    cargarReglas();
+    mostrarAlertGlobal(data.mensaje, "success");
+
+  } else {
+    mostrarErrorModal("alertEditar", data.mensaje);
   }
 }
+
+
 
 document.addEventListener("DOMContentLoaded", () => {
   cargarReglas();
 });
+function mostrarAlertGlobal(mensaje, tipo = "success") {
+  const alert = document.getElementById("alertGlobal");
+  const msg = document.getElementById("alertGlobalMsg");
+
+  alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+  msg.textContent = mensaje;
+
+  setTimeout(() => {
+    alert.classList.remove("show");
+    setTimeout(() => alert.classList.add("d-none"), 300);
+  }, 4000);
+}
 
 document.getElementById("formAgregarSeccion").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -360,10 +481,11 @@ async function cargarReglas() {
         onclick="abrirEditarSeccion('${regla.tipo}')">
   Editar
 </button>
- <button class="btn btn-sm btn-outline-danger"
-          onclick="abrirEliminarSeccion(${regla.id}, '${regla.tipo}')">
-    Eliminar
-  </button>
+<button class="btn btn-sm btn-outline-danger"
+        onclick="abrirEliminarSeccion('${regla.tipo}')">
+  Eliminar
+</button>
+
 </div>
 
 

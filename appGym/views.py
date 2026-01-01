@@ -1540,21 +1540,85 @@ def reglas_json(request):
 
 
 def eliminar_seccion(request):
-    if request.method == "POST":
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT public.contador_gimnasio_hoy();")
-                total = cursor.fetchone()[0]
+    try:
+        data = json.loads(request.body)
+        tipo = data.get("tipo")
 
-    return JsonResponse({"total": total})     
+        if not tipo:
+            return JsonResponse({
+                "success": False,
+                "mensaje": "Sección inválida"
+            })
+
+        # Seguridad (solo admin)
+        if not request.session.get("usuario_admin"):
+            return JsonResponse({
+                "success": False,
+                "mensaje": "No autorizado"
+            }, status=403)
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT eliminar_seccion_reglas(%s);
+            """, [tipo])
+
+            resultado = cursor.fetchone()[0]
+
+        if resultado != "OK":
+            return JsonResponse({
+                "success": False,
+                "mensaje": resultado
+            })
+
+        return JsonResponse({
+            "success": True,
+            "mensaje": "Sección eliminada correctamente"
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "mensaje": f"Error inesperado: {str(e)}"
+        })  
 
 
 def guardar_seccion(request):
     if request.method == "POST":
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT public.contador_gimnasio_hoy();")
-                total = cursor.fetchone()[0]
+        try:
+            data = json.loads(request.body)
 
-    return JsonResponse({"total": total})     
+            tipo = data.get("seccion")          # varchar sección
+            reglas = data.get("reglas", [])  # array JSON
+
+            if not tipo:
+                return JsonResponse({
+                    "success": False,
+                    "mensaje": "Sección inválida"
+                })
+
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT guardar_seccion_reglas(%s, %s::jsonb);
+                """, [tipo, json.dumps(reglas)])
+
+                resultado = cursor.fetchone()[0]
+
+            if resultado != "OK":
+                return JsonResponse({
+                    "success": False,
+                    "mensaje": resultado
+                })
+
+            return JsonResponse({
+                "success": True,
+                "mensaje": "Sección actualizada correctamente"
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "mensaje": f"Error al guardar la sección: {str(e)}"
+            })  
 
 def reglas_por_seccion(request, tipo):
     try:
