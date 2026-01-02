@@ -5,72 +5,132 @@
 {% block content %}
 <style>
   .report-card {
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(20, 30, 60, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(20, 30, 60, 0.08);
+    overflow: hidden;
   }
+
+  .report-header {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: white;
+  }
+
+  .report-item {
+    border-radius: 14px;
+    padding: 20px;
+    background: #ffffff;
+    transition: all 0.25s ease;
+    border: 1px solid #e9ecef;
+  }
+
+  .report-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+  }
+
+  .report-icon {
+    font-size: 36px;
+    color: #4b6cb7;
+    margin-bottom: 12px;
+  }
+
   .report-btn {
     background: linear-gradient(90deg, #4b6cb7, #182848);
     color: #fff;
     border: none;
+    border-radius: 20px;
+    padding: 6px 18px;
+  }
+
+  .report-btn:hover {
+    opacity: 0.9;
   }
 </style>
 
 <div class="container mt-5">
   <div class="card report-card">
-    <div class="card-header text-center bg-primary text-white">
-      <h4 class="mb-0">Exportación de Reportes</h4>
-      <p class="mb-0">Descarga información del sistema en formato Excel</p>
+
+    <!-- HEADER -->
+    <div class="card-header report-header text-center py-4">
+      <h3 class="mb-1 fw-bold">
+        <i class="fa-solid fa-chart-column me-2"></i>Reportes del Sistema
+      </h3>
+      <p class="mb-0 opacity-75">
+        Exporta información del gimnasio en formato Excel
+      </p>
     </div>
 
+    <!-- BODY -->
     <div class="card-body">
       <div class="row g-4">
 
         <!-- Usuarios -->
-        <div class="col-md-6">
-          <div class="border rounded p-3 h-100">
-            <h5 class="fw-bold">Usuarios registrados</h5>
-            <p class="text-muted">Todos los usuarios del sistema.</p>
+        <div class="col-md-6 col-lg-3">
+          <div class="report-item h-100 text-center">
+            <div class="report-icon">
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <h5 class="fw-bold">Usuarios</h5>
+            <p class="text-muted small">
+              Listado completo de usuarios registrados.
+            </p>
             <a href="{% url 'reporte_usuarios_excel' %}" class="btn report-btn btn-sm">
-              Descargar Excel
+              <i></i> Descargar
             </a>
           </div>
         </div>
 
-        <!-- Entradas y salidas -->
-        <div class="col-md-6">
-          <div class="border rounded p-3 h-100">
-            <h5 class="fw-bold">Entradas y salidas</h5>
-            <p class="text-muted">Historial completo de ingresos.</p>
+        <!-- Entradas -->
+        <div class="col-md-6 col-lg-3">
+          <div class="report-item h-100 text-center">
+            <div class="report-icon">
+              <i class="fa-solid fa-door-open"></i>
+            </div>
+            <h5 class="fw-bold">Entradas</h5>
+            <p class="text-muted small">
+              Historial de ingresos al<br> gimnasio.
+            </p>
             <a href="{% url 'reporte_ingresos_excel' %}" class="btn report-btn btn-sm">
-              Descargar Excel
+              <i></i> Descargar
             </a>
           </div>
         </div>
 
         <!-- Membresías -->
-        <div class="col-md-6">
-          <div class="border rounded p-3 h-100">
-            <h5 class="fw-bold">Usuarios con membresía activa</h5>
-            <p class="text-muted">Usuarios que cuentan con membresía vigente.</p>
+        <div class="col-md-6 col-lg-3">
+          <div class="report-item h-100 text-center">
+            <div class="report-icon">
+              <i class="fa-solid fa-id-card"></i>
+            </div>
+            <h5 class="fw-bold">Membresías</h5>
+            <p class="text-muted small">
+              Usuarios con membresía <br>registrada.
+            </p>
             <a href="{% url 'reporte_membresias_excel' %}" class="btn report-btn btn-sm">
-              Descargar Excel
+              <i></i> Descargar
             </a>
           </div>
         </div>
 
         <!-- Observaciones -->
-        <div class="col-md-6">
-          <div class="border rounded p-3 h-100">
+        <div class="col-md-6 col-lg-3">
+          <div class="report-item h-100 text-center">
+            <div class="report-icon">
+              <i class="fa-solid fa-clipboard-list"></i>
+            </div>
             <h5 class="fw-bold">Observaciones</h5>
-            <p class="text-muted">Todas las observaciones registradas.</p>
+            <p class="text-muted small">
+              Observaciones registradas en el <br>sistema.
+            </p>
             <a href="{% url 'reporte_observaciones_excel' %}" class="btn report-btn btn-sm">
-              Descargar Excel
+              <i></i> Descargar
             </a>
           </div>
         </div>
 
       </div>
     </div>
+
   </div>
 </div>
 {% endblock %}

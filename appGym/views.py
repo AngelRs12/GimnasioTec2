@@ -936,30 +936,46 @@ from openpyxl.utils import get_column_letter
 import io
 from django.http import HttpResponse
 
-# ==========================
-# REPORTE USUARIOS
-# ==========================
 def reporte_usuarios_excel(request):
     wb = Workbook()
-    ws_base = wb.active
-    wb.remove(ws_base)  # eliminar hoja vacía
+    wb.remove(wb.active)
 
-    tipos_usuarios = [
-        ("Alumnos", "Alumno"),
-        ("Representativos", "Representativo"),
-        ("Externos", "Externo"),
-        ("Desconocidos", "Desconocido"),
-        ("Empleados", "Empleado"),
+    consultas = [
+        (
+            "Alumnos",
+            """
+            SELECT u.*, a.*
+            FROM public.alumno a
+            JOIN public.usuario u ON u.id_usuario = a.id_usuario;
+            """
+        ),
+        (
+            "Empleados",
+            """
+            SELECT u.*, e.*
+            FROM public.empleado e
+            JOIN public.usuario u ON u.id_usuario = e.id_usuario;
+            """
+        ),
+        (
+            "Externos",
+            """
+            SELECT u.*, ex.*
+            FROM public.externo ex
+            JOIN public.usuario u ON u.id_usuario = ex.id_usuario;
+            """
+        ),
+        (
+            "Representativos",
+            """
+            SELECT u.*, r.*
+            FROM public.representativos r
+            JOIN public.usuario u ON u.id_usuario = r.id_usuario;
+            """
+        ),
     ]
 
-    for nombre_hoja, tipo in tipos_usuarios:
-        query = f"""
-            SELECT *
-            FROM public.usuario
-            WHERE tipo_usuario = '{tipo}'
-            ORDER BY id_usuario;
-        """
-
+    for nombre_hoja, query in consultas:
         with connection.cursor() as cursor:
             cursor.execute(query)
             rows = cursor.fetchall()
@@ -971,13 +987,9 @@ def reporte_usuarios_excel(request):
         for row in rows:
             ws.append(row)
 
-        # Ajustar ancho de columnas (igual que tus otros excels)
         for i in range(1, len(headers) + 1):
             ws.column_dimensions[get_column_letter(i)].width = 22
 
-    # =========================
-    # RESPUESTA HTTP (igual que _exportar_excel)
-    # =========================
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
@@ -995,34 +1007,68 @@ def reporte_usuarios_excel(request):
 # REPORTE ENTRADAS Y SALIDAS
 # ==========================
 def reporte_ingresos_excel(request):
-    query = """
-      SELECT 
-  CASE EXTRACT(DOW FROM fecha)
-    WHEN 1 THEN 'Lunes'
-    WHEN 2 THEN 'Martes'
-    WHEN 3 THEN 'Miércoles'
-    WHEN 4 THEN 'Jueves'
-    WHEN 5 THEN 'Viernes'
-  END AS dia,
-  EXTRACT(HOUR FROM fecha) AS hora,
-  COUNT(*) AS total
-FROM ingresos
-WHERE tipo = 'ENTRADA'
-  AND EXTRACT(DOW FROM fecha) BETWEEN 1 AND 5
-  AND EXTRACT(HOUR FROM fecha) BETWEEN 8 AND 23
-GROUP BY dia, hora
-ORDER BY 
-  MIN(EXTRACT(DOW FROM fecha)), 
-  hora;
+    wb = Workbook()
+    wb.remove(wb.active)  # eliminar hoja vacía inicial
 
+    dias = [
+        ("Lunes", 1),
+        ("Martes", 2),
+        ("Miércoles", 3),
+        ("Jueves", 4),
+        ("Viernes", 5),
+    ]
+
+    base_query = """
+        SELECT
+            u.id_usuario,
+            u.nombres,
+            u.apellido_paterno,
+            u.apellido_materno,
+            EXTRACT(HOUR FROM i.fecha) AS hora,
+            i.fecha AS fecha_completa
+        FROM ingresos i
+        JOIN public.usuario u ON u.id_usuario = i.id_usuario
+        WHERE i.tipo = 'ENTRADA'
+          AND EXTRACT(DOW FROM i.fecha) = %s
+          AND EXTRACT(HOUR FROM i.fecha) BETWEEN 8 AND 23
+        ORDER BY
+            hora,
+            i.fecha;
     """
 
-    with connection.cursor() as cursor:
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        headers = [col[0] for col in cursor.description]
+    for nombre_dia, dow in dias:
+        with connection.cursor() as cursor:
+            cursor.execute(base_query, [dow])
+            rows = cursor.fetchall()
+            headers = [col[0] for col in cursor.description]
 
-    return _exportar_excel("ingresos.xlsx", headers, rows)
+        ws = wb.create_sheet(title=nombre_dia)
+        ws.append(headers)
+
+        for row in rows:
+            ws.append(row)
+
+        # Ajustar ancho de columnas
+        for i in range(1, len(headers) + 1):
+            ws.column_dimensions[get_column_letter(i)].width = 22
+
+    # =========================
+    # RESPUESTA HTTP
+    # =========================
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="ingresos_por_dia.xlsx"'
+    )
+    return response
+
+
 
 
 # ==========================
@@ -1030,10 +1076,19 @@ ORDER BY
 # ==========================
 def reporte_membresias_excel(request):
     query = """
-        SELECT u.*
-        FROM usuario u
-        JOIN membresias m ON m.id_usuario = u.id_usuario
-        WHERE m.activa = true;
+        SELECT
+            u.id_usuario,
+            u.nombres,
+            u.apellido_paterno,
+            u.apellido_materno,
+            m.id_membresia,
+            m.no_membresia,
+            m.fecha_inicial,
+            m.fecha_final,
+            m.status,
+            m.comentario
+        FROM public.membresias m
+        JOIN public.usuario u ON u.id_usuario = m.id_usuario;
     """
 
     with connection.cursor() as cursor:
@@ -1041,7 +1096,8 @@ def reporte_membresias_excel(request):
         rows = cursor.fetchall()
         headers = [col[0] for col in cursor.description]
 
-    return _exportar_excel("membresias_activas.xlsx", headers, rows)
+    return _exportar_excel("membresias.xlsx", headers, rows)
+
 
 
 # ==========================
@@ -1050,8 +1106,8 @@ def reporte_membresias_excel(request):
 def reporte_observaciones_excel(request):
     query = """
         SELECT *
-        FROM observaciones
-        ORDER BY fecha_publicacion DESC;
+        FROM public.observaciones
+        ORDER BY fecha_observacion DESC;
     """
 
     with connection.cursor() as cursor:
@@ -1060,6 +1116,7 @@ def reporte_observaciones_excel(request):
         headers = [col[0] for col in cursor.description]
 
     return _exportar_excel("observaciones.xlsx", headers, rows)
+
 
 
 # ==========================
