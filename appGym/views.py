@@ -1090,12 +1090,6 @@ def _exportar_excel(nombre_archivo, headers, rows):
     return response
 
 
-
-
-
-
-
-
 def actividad_eliminar(request, id_actividad):
     if request.method != "POST":
         return JsonResponse({'ok': False, 'msg': "Método inválido"}, status=400)
