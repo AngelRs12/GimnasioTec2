@@ -100,70 +100,46 @@ Gimnasio{% endblock %} {% block content %}
       <span class="visually-hidden">Siguiente</span>
     </button>
   </div>
-  <!-- Contenedores principales -->
-  {% comment %} <div class="container">
-    <div class="row g-3">
-      <div class="col-md-12">
-        <div class="card text-center shadow-sm h-100">
-          <a href="{% url 'entradas_salidas' %}" class="nav-link">
-            <div class="card-body py-5">
-              <img
-                src="{% static 'gym/images/entradas.png' %}"
-                alt="Registrar acceso"
-              />
-              <h4 class="fw-bold text-success">Entradas y Salidas</h4>
-            </div>
+</div>
+<!-- ====== Sección de Noticias ====== -->
+<div class="container mb-5">
+  <h2 class="fw-bold text-center mb-4">Noticias del Gimnasio</h2>
+
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm border-0">
+        <img
+          src="{% static 'gym/images/noticia1.jpeg' %}"
+          class="card-img-top"
+          alt="Nueva área del gimnasio"
+          style="height: 250px; object-fit: cover;"
+        />
+
+        <div class="card-body">
+          <h5 class="card-title fw-bold">
+            Nueva área de entrenamiento funcional
+          </h5>
+
+          <p class="card-text text-muted mb-2">
+            <small>Publicado el 15 de enero de 2026</small>
+          </p>
+
+          <p class="card-text">
+            Hemos inaugurado una nueva área de entrenamiento funcional equipada
+            con material moderno para mejorar fuerza, resistencia y movilidad.
+            ¡Ven a conocerla y entrena de una forma diferente!
+          </p>
+
+          <!-- Opcional: botón -->
+          <!--
+          <a href="#" class="btn btn-outline-primary btn-sm">
+            Leer más
           </a>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card text-center shadow-sm h-100">
-          <a href="{% url 'usuarios' %}" class="nav-link">
-            <div class="card-body py-5">
-              <img src="{% static 'gym/images/users.png' %}" alt="Usuarios" />
-              <h4 class="fw-bold text-primary">Gestión de usuarios</h4>
-            </div>
-          </a>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card text-center shadow-sm h-100">
-          <a href="{% url 'membresias' %}" class="nav-link">
-            <div class="card-body py-5">
-              <img
-                src="{% static 'gym/images/membresia.png' %}"
-                alt="Membresías"
-              />
-              <h4 class="fw-bold text-primary">Gestión de membresías</h4>
-            </div>
-          </a>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card text-center shadow-sm h-100">
-          <a href="{% url 'reportes' %}" class="nav-link">
-            <div class="card-body py-5">
-              <img src="{% static 'gym/images/reports.png' %}" alt="Reportes" />
-              <h4 class="fw-bold text-danger">Reporte de uso del gimnasio</h4>
-            </div>
-          </a>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card text-center shadow-sm h-100">
-          <a href="{% url 'observaciones' %}" class="nav-link">
-            <div class="card-body py-5">
-              <img
-                src="{% static 'gym/images/observation.png' %}"
-                alt="Observaciones"
-              />
-              <h4 class="fw-bold text-warning">Observaciones</h4>
-            </div>
-          </a>
+          -->
         </div>
       </div>
     </div>
-  </div> {% endcomment %}
+  </div>
 </div>
 
 {% endblock %}
