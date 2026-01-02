@@ -57,6 +57,8 @@ urlpatterns = [
     path("eliminar_seccion/",views.eliminar_seccion, name="eliminar_seccion"),
     path("guardar_seccion/",views.guardar_seccion, name="guardar_seccion"),
     path("reglas/seccion/<str:tipo>/",views.reglas_por_seccion, name="reglas_por_seccion"),
+    path("horario_bloque/<str:bloque>/", views.horario_bloque, name="horario_bloque"),
+    path("horario_bloque_guardar/", views.horario_bloque_guardar,name="horario_bloque_guardar"),
 
 
 

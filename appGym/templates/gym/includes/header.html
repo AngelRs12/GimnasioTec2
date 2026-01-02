@@ -233,6 +233,10 @@
    class="{% if request.resolver_match.url_name == 'sesion' %}active{% endif %}">
   <i class="fa-solid fa-plug"></i> Iniciar Sesión
 </a>
+<a href="{% url 'index' %}"
+   class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+  <i class="fa-solid fa-house"></i> Inicio
+</a>
 <a href="{% url 'reglamento' %}"
    class="{% if request.resolver_match.url_name == 'reglamento' %}active{% endif %}">
   <i class="fa-solid fa-file-lines"></i> Reglamento

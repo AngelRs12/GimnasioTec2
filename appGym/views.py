@@ -1645,3 +1645,99 @@ def reglas_por_seccion(request, tipo):
             "success": False,
             "mensaje": str(e)
         }, status=500)
+        
+
+def horario_bloque(request, bloque):
+    with connection.cursor() as cursor:
+
+        if bloque == "horario":
+            cursor.execute("SELECT * FROM obtener_horarios();")
+            filas = cursor.fetchall()
+
+            return JsonResponse({
+                "datos": [
+                    {
+                        "id": f[0],
+                        "horario": f[1],
+                        "usuario": f[2],
+                        "costoObs": f[3]
+                    } for f in filas
+                ]
+            })
+
+        elif bloque in ["requisitos_comunidad", "requisitos_equipos"]:
+            tipo = "Comunidad ITCJ" if bloque == "requisitos_comunidad" else "Equipos Representativos"
+
+            cursor.execute(
+                "SELECT * FROM obtener_requisitos(%s);",
+                [tipo]
+            )
+
+            return JsonResponse({
+                "datos": [r[0] for r in cursor.fetchall()]
+            })
+
+        elif bloque == "costos":
+            cursor.execute("SELECT * FROM obtener_costos();")
+            filas = cursor.fetchall()
+
+            return JsonResponse({
+                "datos": [
+                    {"tipo_usuario": f[0], "costo": f[1]}
+                    for f in filas
+                ]
+            })
+
+    return JsonResponse({"error": "Bloque no válido"}, status=400)
+
+def horario_bloque_guardar(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "mensaje": "Método inválido"})
+
+    data = json.loads(request.body)
+    bloque = data.get("bloque")
+
+    with connection.cursor() as cursor:
+
+        # ================= HORARIOS =================
+        if bloque == "horario":
+            for h in data["eliminar"]:
+                cursor.execute("CALL eliminar_horario(%s);", [h["id"]])
+
+            for h in data["actualizar"]:
+                cursor.execute(
+                    "CALL actualizar_horario(%s,%s,%s,%s);",
+                    [h["id"], h["horario"], h["usuario"], h["costoObs"]]
+                )
+
+            for h in data["insertar"]:
+                cursor.execute(
+                    "CALL insertar_horario(%s,%s,%s);",
+                    [h["horario"], h["usuario"], h["costoObs"]]
+                )
+
+        elif bloque in ["requisitos_comunidad", "requisitos_equipos"]:
+            tipo = "Comunidad ITCJ" if bloque == "requisitos_comunidad" else "Equipos Representativos"
+
+            cursor.execute("CALL eliminar_requisitos_por_tipo(%s);", [tipo])
+
+            for r in data["insertar"]:
+                cursor.execute(
+                    "CALL insertar_requisito(%s,%s);",
+                    [tipo, r["valor"]]
+                )
+
+        # ================= COSTOS =================
+        elif bloque == "costos":
+            cursor.execute("CALL eliminar_costos();")
+
+            for c in data["insertar"]:
+                cursor.execute(
+                    "CALL insertar_costo(%s,%s);",
+                    [c["tipo_usuario"], c["costo"]]
+                )
+
+        else:
+            return JsonResponse({"success": False, "mensaje": "Bloque inválido"})
+
+    return JsonResponse({"success": True})
