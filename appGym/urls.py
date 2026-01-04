@@ -59,7 +59,10 @@ urlpatterns = [
     path("reglas/seccion/<str:tipo>/",views.reglas_por_seccion, name="reglas_por_seccion"),
     path("horario_bloque/<str:bloque>/", views.horario_bloque, name="horario_bloque"),
     path("horario_bloque_guardar/", views.horario_bloque_guardar,name="horario_bloque_guardar"),
-
+    path('guardar_noticia/', views.guardar_noticia, name='guardar_noticia'),
+    path('listar_noticias/', views.listar_noticias, name='listar_noticias'),
+    path("noticias/<int:id>/", views.obtener_noticia, name="obtener_noticia"),
+    path("noticias/actualizar/", views.actualizar_noticia, name="actualizar_noticia"),
 
 
 ]

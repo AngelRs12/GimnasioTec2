@@ -1,9 +1,10 @@
+from datetime import date
 import time
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.db import IntegrityError, transaction
 from django.views.decorators.http import require_POST
 import io
@@ -1792,3 +1793,168 @@ def horario_bloque_guardar(request):
             return JsonResponse({"success": False, "mensaje": "Bloque inválido"})
 
     return JsonResponse({"success": True})
+
+
+def guardar_noticia(request):
+    if request.method == "POST":
+        titulo = request.POST.get("titulo")
+        descripcion = request.POST.get("descripcion")
+        fecha_publicacion = date.today()
+
+        # 📸 Imagen
+        file = request.FILES.get("imagen")
+        nombre_img = "noticias/default.png"
+
+        if file:
+            carpeta = os.path.join(settings.MEDIA_ROOT, "noticias")
+            os.makedirs(carpeta, exist_ok=True)
+
+            # Extensión real
+            extension = os.path.splitext(file.name)[1]
+
+            # Nombre único
+            nombre_img = f"{uuid.uuid4().hex}{extension}"
+            ruta = os.path.join(carpeta, nombre_img)
+
+            # Guardar archivo
+            with open(ruta, "wb+") as destino:
+                for chunk in file.chunks():
+                    destino.write(chunk)
+
+            # Ruta relativa para BD
+            nombre_img = f"noticias/{nombre_img}"
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT insertar_noticia(%s, %s, %s, %s);
+                    """,
+                    [titulo, descripcion, nombre_img, fecha_publicacion]
+                )
+
+            return JsonResponse({
+                "success": True,
+                "mensaje": "Noticia guardada correctamente"
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "error": str(e)
+            })
+
+    return JsonResponse({
+        "success": False,
+        "error": "Método no permitido"
+    })
+    
+def listar_noticias(request):
+    noticias = []
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM obtener_noticias();")
+            columnas = [col[0] for col in cursor.description]
+
+            for fila in cursor.fetchall():
+                noticias.append(dict(zip(columnas, fila)))
+
+        return JsonResponse({
+            "success": True,
+            "noticias": noticias
+        }, safe=False)
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+        
+def obtener_noticia(request, id):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM obtener_noticia_por_id(%s);",
+                [id]
+            )
+            row = cursor.fetchone()
+
+        if not row:
+            return JsonResponse({"success": False, "error": "Noticia no encontrada"})
+
+        return JsonResponse({
+            "success": True,
+            "noticia": {
+                "id": row[0],
+                "titulo": row[1],
+                "descripcion": row[2],
+                "imagen": row[3],
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+def actualizar_noticia(request):
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False,
+            "error": "Método no permitido"
+        })
+
+    try:
+        id_noticia = request.POST.get("id_noticia")
+        titulo = request.POST.get("titulo")
+        descripcion = request.POST.get("descripcion")
+
+        nueva_imagen = request.FILES.get("imagen")
+        ruta_nueva = None
+
+        # 🔎 Obtener imagen actual
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT imagen FROM noticias WHERE id_noticia = %s;",
+                [id_noticia]
+            )
+            row = cursor.fetchone()
+
+        imagen_actual = row[0] if row else None
+
+        # 📸 Si hay imagen nueva
+        if nueva_imagen:
+            carpeta = os.path.join(settings.MEDIA_ROOT, "noticias")
+            os.makedirs(carpeta, exist_ok=True)
+
+            extension = os.path.splitext(nueva_imagen.name)[1]
+            nombre_img = f"{uuid.uuid4().hex}{extension}"
+            ruta_archivo = os.path.join(carpeta, nombre_img)
+
+            with open(ruta_archivo, "wb+") as destino:
+                for chunk in nueva_imagen.chunks():
+                    destino.write(chunk)
+
+            ruta_nueva = f"noticias/{nombre_img}"
+
+            # 🧹 Eliminar imagen anterior
+            if imagen_actual:
+                ruta_vieja = os.path.join(settings.MEDIA_ROOT, imagen_actual)
+                if os.path.exists(ruta_vieja):
+                    os.remove(ruta_vieja)
+
+        # 🗄️ Actualizar en BD
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT actualizar_noticia(%s, %s, %s, %s);
+                """,
+                [id_noticia, titulo, descripcion, ruta_nueva]
+            )
+            success = cursor.fetchone()[0]
+
+        return JsonResponse({"success": success})
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        })
