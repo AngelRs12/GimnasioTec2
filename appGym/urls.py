@@ -63,6 +63,7 @@ urlpatterns = [
     path('listar_noticias/', views.listar_noticias, name='listar_noticias'),
     path("noticias/<int:id>/", views.obtener_noticia, name="obtener_noticia"),
     path("noticias/actualizar/", views.actualizar_noticia, name="actualizar_noticia"),
-
-
-]
+    path("noticias/eliminar/", views.eliminar_noticia, name="eliminar_noticia"),
+    path("listar_fotos_carrusel", views.listar_fotos_carrusel, name="listar_fotos_carrusel"),
+    path("guardar_carrusel", views.guardar_carrusel, name="guardar_carrusel"),
+    ]

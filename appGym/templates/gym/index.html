@@ -1,112 +1,67 @@
 {% extends 'gym/base.html' %} {% load static %} {% block title %}Inicio |
 Gimnasio{% endblock %} {% block content %}
 <style>
-  .carousel-inner img {
-    width: 100%;
-    height: 70vh; /* Ajusta la altura a tu gusto */
-    object-fit: cover; /* Mantiene proporciones y recorta los bordes si es necesario */
-  }
+#carouselGimnasio .carousel-inner img {
+  width: 100%;
+  height: 70vh;
+  object-fit: contain;
+  background-color: #000;
+}
   .noticia-img {
     width: 100%;
-    max-height: 300px; /* límite visual */
-    object-fit: contain; /* 🔑 imagen completa */
+    max-height: 300px;
+    object-fit: contain; 
   }
+  .carrusel-item {
+  height: 200px;              /* 🔑 todas del mismo alto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+/* Imagen dentro del contenedor */
+.carrusel-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;          /* 🔑 recorta sin deformar */
+}
 </style>
 <!-- ====== Contenido principal ====== -->
 <div class="content">
+   <h2 class="fw-bold text-center mb-4">Gimnasio de pesas del ITCJ</h2>
+  {% if request.session.usuario_admin %}
+<button
+  class="btn btn-warning mb-4"
+  data-bs-toggle="modal"
+  data-bs-target="#modalCarrusel"
+>
+  Administrar carrusel
+</button>
+{% endif %}
+
   <!-- Carrusel de imágenes -->
-  <div
-    id="carouselGimnasio"
-    class="carousel slide mb-5"
-    data-bs-ride="carousel"
-  >
-    <!-- Indicadores -->
-    <div class="carousel-indicators">
-      <button
-        type="button"
-        data-bs-target="#carouselGimnasio"
-        data-bs-slide-to="0"
-        class="active"
-        aria-current="true"
-        aria-label="Slide 1"
-      ></button>
-      <button
-        type="button"
-        data-bs-target="#carouselGimnasio"
-        data-bs-slide-to="1"
-        aria-label="Slide 2"
-      ></button>
-      <button
-        type="button"
-        data-bs-target="#carouselGimnasio"
-        data-bs-slide-to="2"
-        aria-label="Slide 3"
-      ></button>
-    </div>
-    <!-- Imágenes del carrusel -->
-    <div class="carousel-inner rounded shadow">
-      <div class="carousel-item active">
-        <img
-          src="{% static 'gym/images/carrusel1.jpeg' %}"
-          class="d-block w-100"
-          alt="Instalaciones del gimnasio"
-        />
-        <div
-          class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded"
-        >
-          <h5>Bienvenido al LiebreGym</h5>
-          <p>Entrena, mejora y supera tus límites cada día.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img
-          src="{% static 'gym/images/carrusel2.jpeg' %}"
-          class="d-block w-100"
-          alt="Clases grupales"
-        />
-        <div
-          class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded"
-        >
-          <h5>Zona de pesas y cardio</h5>
-          <p>Equipos modernos y asesoría profesional a tu disposición.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img
-          src="{% static 'gym/images/carrusel3.jpeg' %}"
-          class="d-block w-100"
-          alt="Zona de pesas"
-        />
-        <div
-          class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded"
-        >
-          <h5>Actividades</h5>
-          <p>Participa en clases dirigidas y entrenamientos grupales.</p>
-        </div>
-      </div>
-    </div>
-    <!-- Controles -->
-    <button
-      class="carousel-control-prev"
-      type="button"
-      data-bs-target="#carouselGimnasio"
-      data-bs-slide="prev"
-    >
-      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-      <span class="visually-hidden">Anterior</span>
-    </button>
-    <button
-      class="carousel-control-next"
-      type="button"
-      data-bs-target="#carouselGimnasio"
-      data-bs-slide="next"
-    >
-      <span class="carousel-control-next-icon" aria-hidden="true"></span>
-      <span class="visually-hidden">Siguiente</span>
-    </button>
-  </div>
+<div
+  id="carouselGimnasio"
+  class="carousel slide mb-5"
+  data-bs-ride="carousel"
+>
+  <div class="carousel-indicators"></div>
+  <div class="carousel-inner rounded shadow"></div>
+
+  <button class="carousel-control-prev" type="button"
+    data-bs-target="#carouselGimnasio" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon"></span>
+  </button>
+
+  <button class="carousel-control-next" type="button"
+    data-bs-target="#carouselGimnasio" data-bs-slide="next">
+    <span class="carousel-control-next-icon"></span>
+  </button>
 </div>
-<!-- ====== Sección de Noticias ====== -->
+
 
 <div class="container mb-5">
   <h2 class="fw-bold text-center mb-4">Noticias del Gimnasio</h2>
@@ -262,9 +217,89 @@ Gimnasio{% endblock %} {% block content %}
     </div>
   </div>
 </div>
+<div class="modal fade" id="modalEliminarNoticia" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Eliminar noticia</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="alertaEliminarNoticia"></div>
+        <p>¿Estás seguro de que deseas eliminar esta noticia?</p>
+        <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+        <input type="hidden" id="idNoticiaEliminar">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmarEliminarNoticia">
+          Sí, eliminar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="modalCarrusel">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">Administrador del carrusel</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- SUBIR IMÁGENES -->
+        <div class="mb-4">
+          <h6 class="fw-bold">Subir nuevas imágenes</h6>
+          <input
+            type="file"
+            id="inputSubirCarrusel"
+            class="form-control"
+            multiple
+            accept="image/*"
+          >
+          <small class="text-muted">
+            Las imágenes se guardarán al presionar “Guardar cambios”.
+          </small>
+        </div>
+
+        <hr>
+
+        <!-- LISTA DE IMÁGENES -->
+        <h6 class="fw-bold mb-3">Imágenes actuales</h6>
+        <div id="gridCarrusel" class="row"></div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button class="btn btn-success" id="btnGuardarCarrusel">
+          Guardar cambios
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+    </div>
+  </div>
+</div>
 
 <script>
+
      const ES_ADMIN = {{ request.session.usuario_admin|yesno:"true,false" }};
+     let imagenesEliminar = new Set();
+let imagenesNuevas = [];
       async function cargarNoticias() {
       try {
         const response = await fetch("{% url 'listar_noticias' %}");
@@ -337,20 +372,18 @@ Gimnasio{% endblock %} {% block content %}
       }
     }
 
-    // 🚀 Cargar al iniciar
     document.addEventListener("DOMContentLoaded", cargarNoticias);
+    document.addEventListener("DOMContentLoaded", cargarCarrusel);
     const btnGuardarNoticia = document.getElementById("btnGuardarNoticia");
 
  btnGuardarNoticia.addEventListener("click", async () => {
   const form = document.getElementById("formAgregarNoticia");
 
-  // 🧼 limpiar alertas previas
   document.getElementById("alertaAgregarNoticia").innerHTML = "";
 
   const titulo = form.titulo.value.trim();
   const descripcion = form.descripcion.value.trim();
 
-  // ❌ VALIDACIONES
   if (!tieneAlfanumerico(titulo)) {
     mostrarAlertaModalAgregar(
       "El título debe contener al menos un carácter alfanumérico"
@@ -379,19 +412,12 @@ Gimnasio{% endblock %} {% block content %}
     const data = await response.json();
 
     if (data.success) {
-      // ✅ cerrar modal
       const modal = bootstrap.Modal.getInstance(
         document.getElementById("modalAgregarNoticia")
       );
       modal.hide();
-
-      // 🧼 reset form (incluye file)
       form.reset();
-
-      // ✅ alerta global
-      mostrarAlertaGlobal("Noticia guardada correctamente ✅", "success");
-
-      // 🔄 refrescar listado
+      mostrarAlertaGlobal("Noticia guardada correctamente", "success");
       cargarNoticias();
 
     } else {
@@ -418,62 +444,44 @@ Gimnasio{% endblock %} {% block content %}
 
       form.reset();
       resetFileInput("edit_imagen");
-
-      // 🧼 LIMPIAR ALERTA DEL MODAL
       document.getElementById("alertaEditarNoticia").innerHTML = "";
-
       const resp = await fetch(`/noticias/${id}/`);
       const data = await resp.json();
-
       if (!data.success) {
         mostrarAlertaModalEditar(data.error || "Error al cargar noticia");
         return;
       }
-
       document.getElementById("edit_id_noticia").value = data.noticia.id;
       document.getElementById("edit_titulo").value = data.noticia.titulo;
       document.getElementById("edit_descripcion").value = data.noticia.descripcion;
-
       const modal = new bootstrap.Modal(
         document.getElementById("modalEditarNoticia")
       );
       modal.show();
-
     } catch (error) {
       console.error(error);
       mostrarAlertaModalEditar("Error inesperado al cargar la noticia");
     }
   }
 
-
-
-
-  document
-    .getElementById("btnActualizarNoticia")
-    .addEventListener("click", async () => {
-
+  document.getElementById("btnActualizarNoticia").addEventListener("click", async () => {
 const form = document.getElementById("formEditarNoticia");
 
     const titulo = form.titulo.value.trim();
     const descripcion = form.descripcion.value.trim();
-
-    // ❌ VALIDACIÓN
     if (!tieneAlfanumerico(titulo)) {
       mostrarAlertaModalEditar(
         "El título debe contener al menos un carácter alfanumérico"
       );
       return;
     }
-
     if (!tieneAlfanumerico(descripcion)) {
       mostrarAlertaModalEditar(
         "La descripción debe contener al menos un carácter alfanumérico"
       );
       return;
     }
-
     const formData = new FormData(form);
-
       try {
         const resp = await fetch("{% url 'actualizar_noticia' %}", {
           method: "POST",
@@ -482,41 +490,66 @@ const form = document.getElementById("formEditarNoticia");
           },
           body: formData,
         });
-
         const data = await resp.json();
 
    if (data.success) {
-    // ❌ alert("Noticia actualizada ✅");
-
     const modal = bootstrap.Modal.getInstance(
       document.getElementById("modalEditarNoticia")
     );
     modal.hide();
-
     cargarNoticias();
-
-    // ✅ ALERTA GLOBAL
-    mostrarAlertaGlobal("Noticia actualizada correctamente ✅", "success");
+    mostrarAlertaGlobal("Noticia actualizada correctamente", "success");
 
   } else {
-    // ❌ alert(data.error);
-
-    // 🚨 ALERTA DENTRO DEL MODAL
     mostrarAlertaModalEditar(data.error || "Error al actualizar la noticia");
   }
-
-
       } catch (error) {
-        console.error(error);
   mostrarAlertaModalEditar(data.error || "Error al actualizar la noticia");
       }
     });
 
-
   function eliminarNoticia(id) {
-    if (!confirm("¿Seguro que deseas eliminar esta noticia?")) return;
-    alert("Eliminar noticia ID: " + id);
+    document.getElementById("idNoticiaEliminar").value = id;
+    document.getElementById("alertaEliminarNoticia").innerHTML = "";
+        let modalEliminar = new bootstrap.Modal(
+    document.getElementById("modalEliminarNoticia")
+  );
+    modalEliminar.show();
   }
+  document
+    .getElementById("btnConfirmarEliminarNoticia")
+    .addEventListener("click", async () => {
+
+      const id = document.getElementById("idNoticiaEliminar").value;
+
+      try {
+        const resp = await fetch("{% url 'eliminar_noticia' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+          },
+          body: JSON.stringify({ id_noticia: id })
+        });
+
+        const data = await resp.json();
+
+        if (data.success) {
+           const modalEliminar = bootstrap.Modal.getInstance(
+        document.getElementById("modalEliminarNoticia")
+      );
+          modalEliminar.hide();
+          cargarNoticias();
+          mostrarAlertaGlobal("Noticia eliminada correctamente", "success");
+        } else {
+          mostrarAlertaEliminar(data.error || "Error al eliminar la noticia");
+        }
+
+      } catch (error) {
+        mostrarAlertaEliminar("Error inesperado al eliminar");
+      }
+    });
+
   function mostrarAlertaGlobal(mensaje, tipo = "success") {
     const contenedor = document.getElementById("alertaGlobalNoticias");
 
@@ -527,7 +560,6 @@ const form = document.getElementById("formEditarNoticia");
       </div>
     `;
 
-    // Auto cerrar después de 4s
     setTimeout(() => {
       const alerta = contenedor.querySelector(".alert");
       if (alerta) alerta.classList.remove("show");
@@ -536,7 +568,6 @@ const form = document.getElementById("formEditarNoticia");
 
   function mostrarAlertaModalEditar(mensaje, tipo = "danger") {
     const contenedor = document.getElementById("alertaEditarNoticia");
-
     contenedor.innerHTML = `
       <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
         ${mensaje}
@@ -546,7 +577,6 @@ const form = document.getElementById("formEditarNoticia");
   }
   function mostrarAlertaModalAgregar(mensaje, tipo = "danger") {
   const contenedor = document.getElementById("alertaAgregarNoticia");
-
   contenedor.innerHTML = `
     <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
       ${mensaje}
@@ -554,11 +584,124 @@ const form = document.getElementById("formEditarNoticia");
     </div>
   `;
 }
-
   function tieneAlfanumerico(texto) {
   return /[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/.test(texto);
 }
+  function mostrarAlertaEliminar(mensaje, tipo = "danger") {
+    document.getElementById("alertaEliminarNoticia").innerHTML = `
+      <div class="alert alert-${tipo} alert-dismissible fade show">
+        ${mensaje}
+        <button class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+  }
 
+let carruselSeleccion = new Set();
+
+async function cargarAdministradorCarrusel() {
+  imagenesEliminar.clear();
+  imagenesNuevas = [];
+
+  document.getElementById("inputSubirCarrusel").value = "";
+
+  const resp = await fetch("{% url 'listar_fotos_carrusel' %}");
+  const data = await resp.json();
+
+  const cont = document.getElementById("gridCarrusel");
+  cont.innerHTML = "";
+
+data.imagenes.forEach(img => {
+  cont.innerHTML += `
+    <div class="col-md-4 mb-3 text-center" data-img="${img}">
+      <div class="carrusel-item shadow mb-2">
+        <img src="/media/${img}" alt="Imagen carrusel">
+      </div>
+
+      <button class="btn btn-outline-danger btn-sm w-100"
+        onclick="marcarEliminar('${img}', this)">
+        Eliminar
+      </button>
+    </div>
+  `;
+});
+}
+
+function marcarEliminar(img, btn) {
+  imagenesEliminar.add(img);
+  const card = btn.closest("[data-img]");
+  card.classList.add("opacity-50");
+  btn.disabled = true;
+  btn.textContent = "Se eliminará";
+}
+
+document.getElementById("modalCarrusel")
+  .addEventListener("shown.bs.modal", cargarAdministradorCarrusel);
+
+async function cargarCarrusel() {
+  const resp = await fetch("{% url 'listar_fotos_carrusel' %}");
+  const data = await resp.json();
+
+  const indicators = document.querySelector(".carousel-indicators");
+  const inner = document.querySelector(".carousel-inner");
+
+  indicators.innerHTML = "";
+  inner.innerHTML = "";
+
+  data.imagenes.forEach((img, i) => {
+    indicators.innerHTML += `
+      <button type="button"
+        data-bs-target="#carouselGimnasio"
+        data-bs-slide-to="${i}"
+        class="${i === 0 ? "active" : ""}">
+      </button>
+    `;
+
+    inner.innerHTML += `
+      <div class="carousel-item ${i === 0 ? "active" : ""}">
+        <img src="/media/${img}" class="d-block w-100">
+      </div>
+    `;
+  });
+}
+
+
+
+document.getElementById("modalCarrusel")
+  .addEventListener("shown.bs.modal", cargarAdministradorCarrusel);
+
+document.getElementById("btnGuardarCarrusel")
+  .addEventListener("click", async () => {
+
+    const formData = new FormData();
+
+    imagenesNuevas.forEach(img => {
+      formData.append("imagenes_nuevas", img);
+    });
+
+    formData.append(
+      "imagenes_eliminar",
+      JSON.stringify([...imagenesEliminar])
+    );
+
+    const resp = await fetch("{% url 'guardar_carrusel' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" },
+      body: formData
+    });
+
+    const data = await resp.json();
+
+    if (data.success) {
+      cargarCarrusel();
+      bootstrap.Modal.getInstance(
+        document.getElementById("modalCarrusel")
+      ).hide();
+    }
+});
+document.getElementById("inputSubirCarrusel")
+  .addEventListener("change", (e) => {
+    imagenesNuevas = [...e.target.files];
+  });
 </script>
 
 {% endblock %}

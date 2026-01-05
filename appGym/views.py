@@ -12,6 +12,7 @@ import base64
 from django.http import HttpResponse
 import os
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
 import uuid
 
 def index(request):
@@ -86,21 +87,25 @@ def login(request):
 
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT validar_usuario_admin(%s, %s);",
-                [usuario, password]
+                'SELECT "Password" FROM public."Usuarios_admin" WHERE "Usuario" = %s;',
+                [usuario]
             )
-            resultado = cursor.fetchone()[0]  # True o False
+            fila = cursor.fetchone()
 
-        if resultado:  # Si las credenciales son correctas
-            request.session["usuario_admin"] = usuario
-            return redirect("index")  # Ajusta a tu vista principal
-
-        else:  # Credenciales incorrectas
+        if not fila:
             return render(request, 'gym/sesion.html', {
                 "error": "Usuario o contraseña incorrectos"
             })
 
-    return render(request, "index.html")
+        password_hash = fila[0]
+
+        if check_password(password, password_hash):
+            request.session["usuario_admin"] = usuario
+            return redirect("index")
+
+        return render(request, 'gym/sesion.html', {
+            "error": "Usuario o contraseña incorrectos"
+        })
 
 def logout(request):
     request.session.flush()
@@ -125,10 +130,11 @@ def crear_admin(request):
         try:
             # Usamos una transacción para mayor seguridad
             with transaction.atomic():
+                password_hash = make_password(password)
                 with connection.cursor() as cursor:
                     cursor.execute(
                         'INSERT INTO public."Usuarios_admin" ("Usuario", "Password") VALUES (%s, %s);',
-                        [usuario, password]
+                        [usuario, password_hash]
                     )
 
             messages.success(request, "Administrador creado correctamente.")
@@ -356,9 +362,10 @@ def editar_admin(request):
                 return render(request, "gym/administradores.html", {"error": "Usuario a editar no proporcionado."})
 
             # Actualizar contraseña
+            password_hash = make_password(password)
             cursor.execute(
                 'UPDATE public."Usuarios_admin" SET "Password" = %s WHERE "Usuario" = %s;',
-                [password, usuario]
+                [password_hash, usuario]
             )
             if cursor.rowcount == 0:
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -1958,3 +1965,75 @@ def actualizar_noticia(request):
             "success": False,
             "error": str(e)
         })
+        
+def eliminar_noticia(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Método no permitido"})
+
+    try:
+        data = json.loads(request.body)
+        id_noticia = data.get("id_noticia")
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT eliminar_noticia_sp(%s);",
+                [id_noticia]
+            )
+            imagen = cursor.fetchone()[0]
+
+        # 🔐 NO borrar imagen por defecto
+        if imagen and imagen != "noticias/default.png":
+            ruta_imagen = os.path.join(settings.MEDIA_ROOT, imagen)
+
+            if os.path.exists(ruta_imagen):
+                os.remove(ruta_imagen)
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        })
+        
+
+def listar_fotos_carrusel(request):
+    carpeta = os.path.join(settings.MEDIA_ROOT, "fotosCarrusel")
+    imagenes = []
+
+    if os.path.exists(carpeta):
+        imagenes = sorted([
+            f for f in os.listdir(carpeta)
+            if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+        ])
+
+    return JsonResponse({
+        "imagenes": [f"fotosCarrusel/{img}" for img in imagenes]
+    })
+    
+def guardar_carrusel(request):
+    carpeta_carrusel = os.path.join(settings.MEDIA_ROOT, "fotosCarrusel")
+    os.makedirs(carpeta_carrusel, exist_ok=True)
+
+    # 🗑️ IMÁGENES A ELIMINAR
+    imagenes_eliminar = json.loads(
+        request.POST.get("imagenes_eliminar", "[]")
+    )
+
+    for img in imagenes_eliminar:
+        ruta = os.path.join(settings.MEDIA_ROOT, img)
+        if os.path.exists(ruta):
+            os.remove(ruta)
+
+    # ➕ IMÁGENES NUEVAS (con UUID)
+    for nueva_imagen in request.FILES.getlist("imagenes_nuevas"):
+
+        extension = os.path.splitext(nueva_imagen.name)[1]
+        nombre_img = f"{uuid.uuid4().hex}{extension}"
+        ruta_archivo = os.path.join(carpeta_carrusel, nombre_img)
+
+        with open(ruta_archivo, "wb+") as destino:
+            for chunk in nueva_imagen.chunks():
+                destino.write(chunk)
+
+    return JsonResponse({"success": True})
