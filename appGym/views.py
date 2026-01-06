@@ -14,6 +14,21 @@ import os
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 import uuid
+from django.http import JsonResponse
+from django.db import connection
+import json
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+from django.db import connection
+import io
+
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+import io
+from django.http import HttpResponse
+
 
 def index(request):
     return render(request, 'gym/index.html')
@@ -36,14 +51,11 @@ def observaciones(request):
 def reglamento(request):
     return render(request, "gym/reglamento.html")
 
-
-
 def horario(request):
     return render(request, 'gym/horario.html')
 
 def reportes_exportacion(request):
     return render(request, "gym/reportes_exportacion.html")
-
 
 def entrenadores(request):
     with connection.cursor() as cursor:
@@ -73,7 +85,6 @@ def actividades(request):
         actividades = [dict(zip(columns, row)) for row in cursor.fetchall()]
     return render(request, "gym/actividades.html", {"actividades": actividades})
     
-
 def acercade(request):
     return render(request, 'gym/acercade.html')
 
@@ -109,26 +120,21 @@ def login(request):
 
 def logout(request):
     request.session.flush()
-    return redirect("index")  # Ajusta a tu vista principal
-
+    return redirect("index") 
 
 def administradores(request):   
     return render(request, 'gym/administradores.html')
-
-
 
 def crear_admin(request):
     if request.method == "POST":
         usuario = (request.POST.get("usuario") or "").strip()
         password = (request.POST.get("password") or "").strip()
 
-        # Validación básica
         if not usuario or not password:
             messages.error(request, "Por favor complete todos los campos.")
             return render(request, "gym/administradores.html")
 
         try:
-            # Usamos una transacción para mayor seguridad
             with transaction.atomic():
                 password_hash = make_password(password)
                 with connection.cursor() as cursor:
@@ -139,40 +145,20 @@ def crear_admin(request):
 
             messages.success(request, "Administrador creado correctamente.")
         except IntegrityError as e:
-            # Manejo específico de llave duplicada (usuario ya existe)
             messages.error(request, "No fue posible crear el administrador: el nombre de usuario ya existe.")
         except Exception as e:
-            # Captura errores inesperados y registra/manda mensaje genérico
-            # Opcional: loggear 'e' con logging para debug
             messages.error(request, f"No fue posible crear el administrador: {str(e)}")
-
-        # No redirigimos; renderizamos la misma plantilla para que el SweetAlert aparezca
         return render(request, "gym/administradores.html")
-
-    # GET u otros métodos
     return render(request, "gym/administradores.html")
 
-    
-
-
-
 def buscar_admin(request):
-    """
-    Busca administradores:
-     - Si no hay parámetros GET renderiza administradores.html.
-     - Parámetros aceptados (GET): id_admin (num) y usuario (texto).
-     - Devuelve JSON cuando la petición es AJAX; si no, renderiza template con resultados en contexto.
-    """
     # Obtener parámetros
     id_param = request.GET.get("id_admin") or request.GET.get("id") or ""
     id_param = id_param.strip()
     nombre = (request.GET.get("usuario") or request.GET.get("nombre") or "").strip()
-
-    # Si no hay criterios -> render
+    
     if not id_param and not nombre: 
-                    
         return render(request, "gym/administradores.html")
-
     try:
         rows = []
         with connection.cursor() as cursor:
@@ -190,9 +176,7 @@ def buscar_admin(request):
                     [f"%{nombre}%"]
                 )
                 rows = cursor.fetchall()
-
             else:
-                # búsqueda por id_admin: consultar directamente la columna id_admin
                 try:
                     id_int = int(id_param)
                 except (ValueError, TypeError):
@@ -208,11 +192,7 @@ def buscar_admin(request):
                         [id_int]
                     )
                     rows = cursor.fetchall()
-
-        # Mapear resultados a diccionarios
         resultados = [{"id_admin": r[0], "usuario": r[1]} for r in rows]
-
-        # Respuesta AJAX o render normal
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"success": True, "resultados": resultados})
         else:
@@ -226,17 +206,9 @@ def buscar_admin(request):
         err = str(e)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"success": False, "error": err}, status=500)
-        # Renderizar plantilla con mensaje de error en contexto
         return render(request, "gym/administradores.html", {"error": f"No fue posible realizar la búsqueda: {err}"})
 
-
-
 def eliminar_admin(request):
-    """
-    Elimina un administrador.
-    - POST con 'usuario' o 'id_admin'.
-    - Responde JSON si es AJAX, si no redirige/renderiza.
-    """
     if request.method != "POST":
         return redirect("administradores")
 
@@ -251,7 +223,6 @@ def eliminar_admin(request):
 
     try:
         with connection.cursor() as cursor:
-            # Si nos dieron id_admin, resolvemos el usuario
             if id_param and not usuario:
                 try:
                     id_int = int(id_param)
@@ -303,13 +274,6 @@ def eliminar_admin(request):
         return render(request, "gym/administradores.html", {"error": f"No fue posible eliminar el administrador: {err}"})
 
 def editar_admin(request):
-    """
-    Edita la información de un administrador.
-    - Acepta POST con:
-        - 'usuario' (nombre actual) o 'id_admin' (num) para identificar el registro
-        - 'password' nueva (requerida)
-    - Responde JSON si es AJAX, o redirige/renderiza otherwise.
-    """
     if request.method != "POST":
         return redirect("administradores")
 
@@ -330,7 +294,6 @@ def editar_admin(request):
 
     try:
         with connection.cursor() as cursor:
-            # Si nos dieron id_admin, resolvemos el usuario correspondiente
             if id_param and not usuario:
                 try:
                     id_int = int(id_param)
@@ -361,7 +324,6 @@ def editar_admin(request):
                     return JsonResponse({"success": False, "error": "Usuario a editar no proporcionado."}, status=400)
                 return render(request, "gym/administradores.html", {"error": "Usuario a editar no proporcionado."})
 
-            # Actualizar contraseña
             password_hash = make_password(password)
             cursor.execute(
                 'UPDATE public."Usuarios_admin" SET "Password" = %s WHERE "Usuario" = %s;',
@@ -382,20 +344,51 @@ def editar_admin(request):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"success": False, "error": err}, status=500)
         return render(request, "gym/administradores.html", {"error": f"No fue posible editar el administrador: {err}"})
+    
+def guardar_foto_usuario(file):
+    if not file:
+        return None
 
+    carpeta = os.path.join(settings.MEDIA_ROOT, "fotos_usuarios")
+    os.makedirs(carpeta, exist_ok=True)
+
+    extension = os.path.splitext(file.name)[1]
+    nombre_img = f"{uuid.uuid4().hex}{extension}"
+
+    ruta_absoluta = os.path.join(carpeta, nombre_img)
+
+    with open(ruta_absoluta, "wb+") as destino:
+        for chunk in file.chunks():
+            destino.write(chunk)
+
+    return f"fotos_usuarios/{nombre_img}"
+
+def borrar_foto_usuario(ruta_foto):
+    if not ruta_foto:
+        return
+    ruta_absoluta = os.path.join(settings.MEDIA_ROOT, ruta_foto)
+    if os.path.exists(ruta_absoluta):
+        try:
+            os.remove(ruta_absoluta)
+        except Exception:
+            pass
+        
 def gestion_usuarios(request):
     if request.method == "POST":
         accion = request.POST.get("accion")
-        tipo_usuario = request.POST.get("tipo_usuario")
+
         nombre = request.POST.get("nombre")
         apellido_paterno = request.POST.get("apellido_paterno")
         apellido_materno = request.POST.get("apellido_materno")
-        no_control = request.POST.get("no_control")  # si aplica
-        equipo = request.POST.get("equipo")  # si aplica (solo representativo)
-        numero_empleado = request.POST.get("numero_empleado")    
+        tipo_usuario = request.POST.get("tipo_usuario")
+
+        no_control = request.POST.get("no_control")
+        equipo = request.POST.get("equipo")
+        numero_empleado = request.POST.get("numero_empleado")
+
+        foto = request.FILES.get("foto")
         if accion == "agregar":
             try:
-                
                 with connection.cursor() as cursor:
                     cursor.execute("""
                         SELECT insertar_usuario_general(%s, %s, %s, %s, %s, %s, %s)
@@ -406,108 +399,120 @@ def gestion_usuarios(request):
                         tipo_usuario,
                         no_control,
                         numero_empleado,
-                        equipo  # nuevo parámetro               
+                        equipo
                     ])
 
-                    # Recuperar el id del usuario recién insertado
                     nuevo_id = cursor.fetchone()[0]
 
-                    # Si es una petición AJAX, devolver JSON
-                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                        return JsonResponse({
+                    ruta_foto = guardar_foto_usuario(foto)
+                    if ruta_foto:
+                        cursor.execute("""
+                            UPDATE usuario
+                            SET foto = %s
+                            WHERE id_usuario = %s
+                        """, [ruta_foto, nuevo_id])
+
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return JsonResponse({
                         "success": True,
-                        "mensaje": f"Usuario agregado correctamente (ID: {nuevo_id}).",
+                        "mensaje": f"Usuario agregado correctamente (ID: {nuevo_id})."
                     })
 
-                    # Si no es AJAX, render normal
-                    return render(
-                        request,
-                        "gym/usuarios.html",
-                        {"mensaje": f"Usuario agregado correctamente (ID: {nuevo_id})."}
-                    )
+                return render(
+                    request,
+                    "gym/usuarios.html",
+                    {"mensaje": f"Usuario agregado correctamente (ID: {nuevo_id})."}
+                )
 
             except Exception as e:
-                error_msg = str(e)
+                error_msg = str(e).split("CONTEXT:")[0].strip()
 
+                return JsonResponse(
+                    {"success": False, "error": error_msg},
+                    status=400
+                )
 
         if accion == "editar":
-            id_usuario = request.POST.get("id_usuario")   # ← AQUI ES DONDE LO NECESITAS
-            nombre = request.POST.get("nombre")
-            apellido_paterno = request.POST.get("apellido_paterno")
-            apellido_materno = request.POST.get("apellido_materno")
-            tipo_usuario = request.POST.get("tipo_usuario")
-            no_control = request.POST.get("no_control")
-            equipo = request.POST.get("equipo")
-            numero_empleado = request.POST.get("no_control")
-   
+            id_usuario = request.POST.get("id_usuario")
+
             try:
                 with connection.cursor() as cursor:
                     cursor.execute("""
-                    SELECT editar_usuario_general(%s, %s, %s, %s, %s, %s, %s, %s)
+                        SELECT foto
+                        FROM usuario
+                        WHERE id_usuario = %s
+                    """, [id_usuario])
+
+                    fila = cursor.fetchone()
+                    foto_actual = fila[0] if fila else None
+                    cursor.execute("""
+                        SELECT editar_usuario_general(%s, %s, %s, %s, %s, %s, %s, %s)
                     """, [
-                    id_usuario,
-                    nombre,
-                    apellido_paterno,
-                    apellido_materno,
-                    tipo_usuario,
-                    no_control if no_control else None,
-                    numero_empleado if numero_empleado else None,   # ← NUEVO
-                    equipo if equipo else None
-                ])
+                        id_usuario,
+                        nombre,
+                        apellido_paterno,
+                        apellido_materno,
+                        tipo_usuario,
+                        no_control if no_control else None,
+                        numero_empleado if numero_empleado else None,
+                        equipo if equipo else None
+                    ])
+                    mensaje = cursor.fetchone()[0]
+                    ruta_foto_nueva = None
 
+                    if foto:
+                        ruta_foto_nueva = guardar_foto_usuario(foto)
 
-                    mensaje = cursor.fetchone()[0]  # La función retorna texto
+                        if ruta_foto_nueva:
+                            cursor.execute("""
+                                UPDATE usuario
+                                SET foto = %s
+                                WHERE id_usuario = %s
+                            """, [ruta_foto_nueva, id_usuario])
 
-                    # Petición AJAX → JSON
-                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                        return JsonResponse({
-                            "success": True,
-                            "mensaje": mensaje,
-                            "id_usuario": id_usuario
-                        })
+                            borrar_foto_usuario(foto_actual)
 
-                    # Petición normal → recarga de página
-                    return render(
-                        request,
-                        "gym/usuarios.html",
-                        {"mensaje": mensaje}
-                    )
-
-            except Exception as e:
                 return JsonResponse({
-                    "success": False,
-                    "error": str(e)
+                    "success": True,
+                    "mensaje": mensaje,
+                    "id_usuario": id_usuario,
+                    "foto": f"{settings.MEDIA_URL}{ruta_foto_nueva}" if ruta_foto_nueva else None
                 })
 
-        # Si viene con "CONTEXT:", cortamos desde ahí
-        if "CONTEXT:" in error_msg:
-            error_msg = error_msg.split("CONTEXT:")[0].strip()
+            except Exception as e:
+                error_msg = str(e).split("CONTEXT:")[0].strip()
+                return JsonResponse(
+                    {"success": False, "error": error_msg},
+                    status=400
+                )
 
-        # Respuesta AJAX
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"success": False, "error": error_msg}, status=400)
-
-        # Respuesta normal
-        return render(request, "gym/usuarios.html", {"error": error_msg})
-    
- # === BUSCAR USUARIO === (AJAX con fetch)
     elif request.method == "GET" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         id_usuario = request.GET.get("id_usuario", "").strip()
         nombre = request.GET.get("nombre", "").strip()
+
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT * FROM buscar_usuario(%s, %s)", [id_usuario, nombre])
+                cursor.execute(
+                    "SELECT * FROM buscar_usuario(%s, %s)",
+                    [id_usuario, nombre]
+                )
+
                 columnas = [col[0] for col in cursor.description]
-                resultados = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+                resultados = [
+                    dict(zip(columnas, fila))
+                    for fila in cursor.fetchall()
+                ]
+
             return JsonResponse({"success": True, "resultados": resultados})
 
         except Exception as e:
             error_str = str(e).split("CONTEXT:")[0].strip()
-            return JsonResponse({"success": False, "error": error_str}, status=400)
+            return JsonResponse(
+                {"success": False, "error": error_str},
+                status=400
+            )
 
-    # Render inicial (vista HTML normal)
     return render(request, "gym/usuarios.html")
-
 
 def registrar_ingreso(request):
     if request.method == "POST":
@@ -522,7 +527,6 @@ def registrar_ingreso(request):
                 )
                 mensaje = cursor.fetchone()[0]
 
-            # 🔴 Validación desde PostgreSQL
             if mensaje.startswith("Registro inválido"):
                 return JsonResponse({
                     "success": False,
@@ -627,16 +631,50 @@ def eliminar_observacion_view(request):
 def eliminar_usuario(request):
     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
         id_usuario = request.POST.get("id_usuario")
+
         if not id_usuario:
-            return JsonResponse({"success": False, "error": "ID de usuario no proporcionado."})
+            return JsonResponse({
+                "success": False,
+                "error": "ID de usuario no proporcionado."
+            })
+
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT public.eliminar_usuario(%s);", [int(id_usuario)])
-            return JsonResponse({"success": True, "mensaje": f"Usuario {id_usuario} eliminado correctamente."})
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)})
-    return JsonResponse({"success": False, "error": "Método no permitido."})
+                cursor.execute("""
+                    SELECT foto
+                    FROM usuario
+                    WHERE id_usuario = %s
+                """, [id_usuario])
 
+                fila = cursor.fetchone()
+                foto = fila[0] if fila else None
+
+                cursor.execute(
+                    "SELECT public.eliminar_usuario(%s);",
+                    [int(id_usuario)]
+                )
+
+            if foto:
+                ruta_fisica = os.path.join(settings.MEDIA_ROOT, foto)
+                if os.path.exists(ruta_fisica):
+                    os.remove(ruta_fisica)
+
+            return JsonResponse({
+                "success": True,
+                "mensaje": f"Usuario {id_usuario} eliminado correctamente."
+            })
+
+        except Exception as e:
+            error_msg = str(e).split("CONTEXT:")[0].strip()
+            return JsonResponse({
+                "success": False,
+                "error": error_msg
+            }, status=400)
+
+    return JsonResponse({
+        "success": False,
+        "error": "Método no permitido."
+    }, status=405)
 def crear_membresia(request):
     if request.method != "POST":
         return JsonResponse({
@@ -727,17 +765,7 @@ def eliminar_membresia(request):
     return JsonResponse(result)
 
 
-
-
-
-# =========================
-# USO DEL GIMNASIO (HISTOGRAMA)
-# =========================
 def uso_gimnasio_data(request):
-    """
-    Endpoint JSON para el histograma de uso del gimnasio
-    Agrupa entradas por día (lunes a viernes)
-    """
     query = """
         SELECT
           EXTRACT(DOW FROM fecha) AS dia,
@@ -748,7 +776,6 @@ def uso_gimnasio_data(request):
         GROUP BY dia
         ORDER BY dia;
     """
-
     try:
         with connection.cursor() as cursor:
             cursor.execute(query)
@@ -766,8 +793,6 @@ def uso_gimnasio_data(request):
 
     labels = []
     data = []
-
-    # Inicializamos todos los días en 0
     conteo_por_dia = {k: 0 for k in dias_map.keys()}
 
     for dia, total in rows:
@@ -782,18 +807,7 @@ def uso_gimnasio_data(request):
         "data": data
     })
 
-
-
-from django.http import JsonResponse
-from django.db import connection
-import json
-
 def uso_gimnasio_por_hora_data(request):
-    """
-    Endpoint JSON
-    Uso del gimnasio por día (L-V) y por hora (8:00–23:00)
-    """
-
     query = """
         SELECT 
           EXTRACT(DOW FROM fecha) AS dia,
@@ -822,20 +836,17 @@ def uso_gimnasio_por_hora_data(request):
         5: "Viernes"
     }
 
-    # Inicializar estructura completa (día + hora)
     conteo = {}
     for d in range(1, 6):
         for h in range(8, 24):
             conteo[(d, h)] = 0
 
-    # Llenar con datos reales
     for dia, hora, total in rows:
         conteo[(int(dia), int(hora))] = int(total)
 
     labels = []
     data = []
 
-    # Generar labels tipo: "Lunes 08:00"
     for d in range(1, 6):
         for h in range(8, 24):
             labels.append(f"{dias_map[d]} {h:02d}:00")
@@ -847,10 +858,6 @@ def uso_gimnasio_por_hora_data(request):
     })
 
 def _fetch_users_rows():
-    """
-    Ejecuta exactamente la consulta SQL que indicaste y devuelve las filas.
-    Cada fila: (id_usuario, nombres, apellido_paterno, apellido_materno, tipo)
-    """
     query = """
        SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno,
               COALESCE(v.tipo, 'desconocido') AS tipo
@@ -864,32 +871,20 @@ def _fetch_users_rows():
     return rows
 
 def _build_counts_from_rows(rows):
-    """
-    Recibe filas (tuplas) y devuelve:
-      - labels: lista de etiquetas (ordenadas)
-      - data: lista de conteos (enteros)
-      - resumen: lista de dicts para la plantilla [{tipo, conteo}, ...]
-      - total: suma de conteos
-    Normaliza tipos y mantiene cualquier tipo inesperado al final.
-    """
-    # contar tipos tal cual vienen (minúsculas tal vez)
     counts = {}
     for r in rows:
         tipo = (r[4] or 'desconocido')
         counts[tipo] = counts.get(tipo, 0) + 1
 
-    # Orden preferido (ajusta si tus tipos en BD usan otras cadenas)
     expected_order = ['alumno', 'representativo', 'externo']
     friendly = {'alumno': 'Alumno', 'representativo': 'Representativo', 'externo': 'Externo', 'desconocido': 'Desconocido'}
 
     labels = []
     data = []
-    # Agregar en orden esperado
     for k in expected_order:
         labels.append(friendly.get(k, k.capitalize()))
         data.append(int(counts.get(k, 0)))
 
-    # Añadir tipos extra que no estén en expected_order (mantener consistencia)
     others = [k for k in counts.keys() if k not in expected_order]
     for k in sorted(others):
         labels.append(friendly.get(k, k.capitalize()))
@@ -900,10 +895,6 @@ def _build_counts_from_rows(rows):
     return labels, data, resumen, total
 
 def reportes_view(request):
-    """
-    Renderiza la plantilla reportes.html con labels_json / data_json derivados
-    directamente de la consulta SQL solicitada.
-    """
     try:
         rows = _fetch_users_rows()
         labels, data, resumen, total = _build_counts_from_rows(rows)
@@ -919,30 +910,12 @@ def reportes_view(request):
     return render(request, "gym/graficas.html", context)
 
 def reportes_data(request):
-    """
-    Endpoint JSON que devuelve los conteos actuales (útil para refrescar las gráficas).
-    Respuesta: {"labels": [...], "data": [...], "total": N}
-    """
     try:
         rows = _fetch_users_rows()
         labels, data, resumen, total = _build_counts_from_rows(rows)
         return JsonResponse({"labels": labels, "data": data, "total": total})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
-
-from openpyxl import Workbook
-from openpyxl.chart import BarChart, Reference
-from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
-from django.db import connection
-import io
-
-from openpyxl import Workbook
-from openpyxl.utils import get_column_letter
-import io
-from django.http import HttpResponse
 
 def reporte_usuarios_excel(request):
     wb = Workbook()
@@ -1009,11 +982,6 @@ def reporte_usuarios_excel(request):
     response["Content-Disposition"] = 'attachment; filename="usuarios.xlsx"'
     return response
 
-
-
-# ==========================
-# REPORTE ENTRADAS Y SALIDAS
-# ==========================
 def reporte_ingresos_excel(request):
     wb = Workbook()
     wb.remove(wb.active)  # eliminar hoja vacía inicial
@@ -1060,9 +1028,6 @@ def reporte_ingresos_excel(request):
         for i in range(1, len(headers) + 1):
             ws.column_dimensions[get_column_letter(i)].width = 22
 
-    # =========================
-    # RESPUESTA HTTP
-    # =========================
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
@@ -1076,12 +1041,6 @@ def reporte_ingresos_excel(request):
     )
     return response
 
-
-
-
-# ==========================
-# REPORTE MEMBRESÍAS ACTIVAS
-# ==========================
 def reporte_membresias_excel(request):
     query = """
         SELECT
@@ -1106,11 +1065,6 @@ def reporte_membresias_excel(request):
 
     return _exportar_excel("membresias.xlsx", headers, rows)
 
-
-
-# ==========================
-# EXCEL
-# ==========================
 def reporte_observaciones_excel(request):
     query = """
         SELECT *
@@ -1125,11 +1079,6 @@ def reporte_observaciones_excel(request):
 
     return _exportar_excel("observaciones.xlsx", headers, rows)
 
-
-
-# ==========================
-# FUNCIÓN GENÉRICA EXCEL
-# ==========================
 def _exportar_excel(nombre_archivo, headers, rows):
     wb = Workbook()
     ws = wb.active
@@ -1256,14 +1205,10 @@ def editar_entrenador(request, id_entrenador):
             row = cursor.fetchone()
             img_actual = row[0] if row else None
 
-        # ─────────────────────────────────────────
-        # 2. Si se sube nueva imagen → guardar y borrar anterior
-        # ─────────────────────────────────────────
         if file:
             carpeta = os.path.join(settings.MEDIA_ROOT, "fotosEntrenadores")
             os.makedirs(carpeta, exist_ok=True)
 
-            # Evitar sobrescribir imágenes repetidas
             ext = os.path.splitext(file.name)[1]
             base = os.path.splitext(file.name)[0]
             nombre_img = f"{base}_{int(time.time())}{ext}"
@@ -1274,19 +1219,14 @@ def editar_entrenador(request, id_entrenador):
                 for chunk in file.chunks():
                     destino.write(chunk)
 
-            # eliminar imagen anterior
             if img_actual:
                 ruta_old = os.path.join(carpeta, img_actual)
                 if os.path.exists(ruta_old):
                     os.remove(ruta_old)
 
         else:
-            # No se envió nueva imagen → se conserva la anterior
             nombre_img = img_actual
 
-        # ─────────────────────────────────────────
-        # 3. Ejecutar SP
-        # ─────────────────────────────────────────
         with connection.cursor() as cursor:
             cursor.callproc(
                 "actualizar_entrenador",
@@ -1307,7 +1247,6 @@ def eliminar_entrenador(request, id_entrenador):
         return JsonResponse({"success": False, "message": "Método no permitido"}, status=405)
 
     try:
-        # 1️⃣ Obtener el nombre de la imagen antes de eliminar
         with connection.cursor() as cursor:
             cursor.execute('SELECT url_imagen FROM public."Entrenadores" WHERE id_entrenador = %s', [id_entrenador])
             row = cursor.fetchone()
@@ -1315,14 +1254,12 @@ def eliminar_entrenador(request, id_entrenador):
         if not row:
             return JsonResponse({"success": False, "message": "Entrenador no existe"}, status=404)
 
-        imagen = row[0]  # nombre del archivo (ej: "juan.png")
+        imagen = row[0] 
 
-        # 2️⃣ Ejecutar el Stored Procedure de eliminación
         with connection.cursor() as cursor:
             cursor.execute("SELECT eliminar_entrenador(%s);", [id_entrenador])
             result = cursor.fetchone()[0]
 
-        # 3️⃣ Si eliminó correctamente, eliminar el archivo físico
         if result.get("success") and imagen:
             ruta_img = os.path.join(settings.MEDIA_ROOT, "fotosEntrenadores", imagen)
             if os.path.exists(ruta_img):
@@ -1352,20 +1289,13 @@ def agregar_entrenador(request):
         if file:
             carpeta = os.path.join(settings.MEDIA_ROOT, "fotosEntrenadores")
             os.makedirs(carpeta, exist_ok=True)
-
-            # Extensión real del archivo
             extension = os.path.splitext(file.name)[1]
-            
-            # Generar nombre único
             nombre_img = f"{uuid.uuid4().hex}{extension}"
             ruta = os.path.join(carpeta, nombre_img)
-
-            # Guardar
             with open(ruta, "wb+") as destino:
                 for chunk in file.chunks():
                     destino.write(chunk)
-
-        # Guardar datos en BD
+                    
         with connection.cursor() as cursor:
             cursor.callproc(
                 "insertar_entrenador",
@@ -1418,16 +1348,13 @@ def buscar_usuario_membresia(request):
                 )
 
                 columnas = [col[0] for col in cursor.description]
-                filas = cursor.fetchall()   # 👈 CAMBIO CLAVE
-
-            # 🔴 No tiene membresía
+                filas = cursor.fetchall()  
             if not filas:
                 return JsonResponse({
                     "success": True,
                     "tiene_membresia": False
                 })
 
-            # 🟢 Tiene membresía (solo 1 por diseño)
             data_sql = dict(zip(columnas, filas[0]))
             print(data_sql)
             return JsonResponse({
@@ -1506,9 +1433,9 @@ def actualizar_membresia(request):
                 """, [
                     data.get("id_usuario"),
                     data.get("status"),
-                    data.get("id_membresia"),      # 👈 puede ser None
-                    data.get("fecha_inicial"),     # 👈 puede ser None
-                    data.get("fecha_final"),       # 👈 puede ser None
+                    data.get("id_membresia"),     
+                    data.get("fecha_inicial"),    
+                    data.get("fecha_final"),       
                     data.get("comentario")
                 ])
 
@@ -1526,7 +1453,6 @@ def actualizar_membresia(request):
             }, status=500)
 
     return JsonResponse({"error": "Método no permitido"}, status=405)
-
 
 def contador_gimnasio(request):
     with connection.cursor() as cursor:
@@ -1572,21 +1498,18 @@ def agregar_seccion(request):
         
 def reglas_json(request):
     with connection.cursor() as cursor:
-        # Headers
         cursor.execute("""
             SELECT tipo, descripcion
             FROM reglas_header
         """)
         headers = cursor.fetchall()
 
-        # Items
         cursor.execute("""
             SELECT tipo, regla
             FROM reglas_item
         """)
         items = cursor.fetchall()
 
-    # Agrupar reglas por tipo
     reglas = []
     for tipo, descripcion in headers:
         reglas.append({
@@ -1596,7 +1519,6 @@ def reglas_json(request):
         })
 
     return JsonResponse({"reglas": reglas})
-
 
 def eliminar_seccion(request):
     try:
@@ -1608,8 +1530,6 @@ def eliminar_seccion(request):
                 "success": False,
                 "mensaje": "Sección inválida"
             })
-
-        # Seguridad (solo admin)
         if not request.session.get("usuario_admin"):
             return JsonResponse({
                 "success": False,
@@ -1639,15 +1559,14 @@ def eliminar_seccion(request):
             "success": False,
             "mensaje": f"Error inesperado: {str(e)}"
         })  
-
-
+        
 def guardar_seccion(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
 
-            tipo = data.get("seccion")          # varchar sección
-            reglas = data.get("reglas", [])  # array JSON
+            tipo = data.get("seccion")      
+            reglas = data.get("reglas", [])  
 
             if not tipo:
                 return JsonResponse({
@@ -1757,8 +1676,7 @@ def horario_bloque_guardar(request):
     bloque = data.get("bloque")
 
     with connection.cursor() as cursor:
-
-        # ================= HORARIOS =================
+        
         if bloque == "horario":
             for h in data["eliminar"]:
                 cursor.execute("CALL eliminar_horario(%s);", [h["id"]])
@@ -1785,8 +1703,7 @@ def horario_bloque_guardar(request):
                     "CALL insertar_requisito(%s,%s);",
                     [tipo, r["valor"]]
                 )
-
-        # ================= COSTOS =================
+                
         elif bloque == "costos":
             cursor.execute("CALL eliminar_costos();")
 
@@ -1801,7 +1718,6 @@ def horario_bloque_guardar(request):
 
     return JsonResponse({"success": True})
 
-
 def guardar_noticia(request):
     if request.method == "POST":
         titulo = request.POST.get("titulo")
@@ -1815,22 +1731,15 @@ def guardar_noticia(request):
         if file:
             carpeta = os.path.join(settings.MEDIA_ROOT, "noticias")
             os.makedirs(carpeta, exist_ok=True)
-
-            # Extensión real
             extension = os.path.splitext(file.name)[1]
-
-            # Nombre único
             nombre_img = f"{uuid.uuid4().hex}{extension}"
             ruta = os.path.join(carpeta, nombre_img)
 
-            # Guardar archivo
             with open(ruta, "wb+") as destino:
                 for chunk in file.chunks():
                     destino.write(chunk)
 
-            # Ruta relativa para BD
             nombre_img = f"noticias/{nombre_img}"
-
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -1917,7 +1826,6 @@ def actualizar_noticia(request):
         nueva_imagen = request.FILES.get("imagen")
         ruta_nueva = None
 
-        # 🔎 Obtener imagen actual
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT imagen FROM noticias WHERE id_noticia = %s;",
@@ -1927,7 +1835,6 @@ def actualizar_noticia(request):
 
         imagen_actual = row[0] if row else None
 
-        # 📸 Si hay imagen nueva
         if nueva_imagen:
             carpeta = os.path.join(settings.MEDIA_ROOT, "noticias")
             os.makedirs(carpeta, exist_ok=True)
@@ -1942,13 +1849,11 @@ def actualizar_noticia(request):
 
             ruta_nueva = f"noticias/{nombre_img}"
 
-            # 🧹 Eliminar imagen anterior
             if imagen_actual:
                 ruta_vieja = os.path.join(settings.MEDIA_ROOT, imagen_actual)
                 if os.path.exists(ruta_vieja):
                     os.remove(ruta_vieja)
 
-        # 🗄️ Actualizar en BD
         with connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -1981,7 +1886,6 @@ def eliminar_noticia(request):
             )
             imagen = cursor.fetchone()[0]
 
-        # 🔐 NO borrar imagen por defecto
         if imagen and imagen != "noticias/default.png":
             ruta_imagen = os.path.join(settings.MEDIA_ROOT, imagen)
 
@@ -2015,7 +1919,6 @@ def guardar_carrusel(request):
     carpeta_carrusel = os.path.join(settings.MEDIA_ROOT, "fotosCarrusel")
     os.makedirs(carpeta_carrusel, exist_ok=True)
 
-    # 🗑️ IMÁGENES A ELIMINAR
     imagenes_eliminar = json.loads(
         request.POST.get("imagenes_eliminar", "[]")
     )
@@ -2025,7 +1928,6 @@ def guardar_carrusel(request):
         if os.path.exists(ruta):
             os.remove(ruta)
 
-    # ➕ IMÁGENES NUEVAS (con UUID)
     for nueva_imagen in request.FILES.getlist("imagenes_nuevas"):
 
         extension = os.path.splitext(nueva_imagen.name)[1]

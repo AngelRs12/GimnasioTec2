@@ -224,6 +224,7 @@ Gestión de Usuarios{% endblock %} {% block content %}
             <form
               method="POST"
               id="form-editar-usuario"
+              enctype="multipart/form-data"
               action="{% url 'gestion_usuarios' %}"
             >
               {% csrf_token %}
@@ -597,8 +598,9 @@ if (tipo === "empleado") {
       document.getElementById("detalle-tipo").textContent =
         "Tipo: " + u.tipo_usuario;
 
-      document.getElementById("detalle-foto").src =
-        u.foto || "https://via.placeholder.com/80";
+      document.getElementById("detalle-foto").src = u.foto
+  ? `/media/${u.foto}`
+  : "/media/fotos_usuarios/default.jpg";
 
       // --- MODO ELIMINAR ---
       if (modoEliminar) {
@@ -714,6 +716,10 @@ if (tipo === "empleado") {
                     ${data.mensaje}
                 </div>
             `;
+              if (data.foto) {
+    const img = document.getElementById("detalle-foto");
+    img.src = data.foto + "?t=" + new Date().getTime(); // evita cache
+  }
 
           } else {
             alerta.innerHTML = `
