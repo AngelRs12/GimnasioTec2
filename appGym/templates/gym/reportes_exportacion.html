@@ -1,51 +1,9 @@
 {% extends 'gym/base.html' %}
-
+{% load static %}
 {% block title %}Reportes | Gimnasio{% endblock %}
 
 {% block content %}
-<style>
-  .report-card {
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(20, 30, 60, 0.08);
-    overflow: hidden;
-  }
-
-  .report-header {
-    background: linear-gradient(90deg, #4b6cb7, #182848);
-    color: white;
-  }
-
-  .report-item {
-    border-radius: 14px;
-    padding: 20px;
-    background: #ffffff;
-    transition: all 0.25s ease;
-    border: 1px solid #e9ecef;
-  }
-
-  .report-item:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
-  }
-
-  .report-icon {
-    font-size: 36px;
-    color: #4b6cb7;
-    margin-bottom: 12px;
-  }
-
-  .report-btn {
-    background: linear-gradient(90deg, #4b6cb7, #182848);
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    padding: 6px 18px;
-  }
-
-  .report-btn:hover {
-    opacity: 0.9;
-  }
-</style>
+<link rel="stylesheet" href="{% static 'styles/reportes.css' %}">
 
 <div class="container mt-5">
   <div class="card report-card">
@@ -74,9 +32,18 @@
             <p class="text-muted small">
               Listado completo de usuarios registrados.
             </p>
-            <a href="{% url 'reporte_usuarios_excel' %}" class="btn report-btn btn-sm">
-              <i></i> Descargar
-            </a>
+
+            <div class="d-flex justify-content-center gap-2">
+              <a href="#"
+   class="btn btn-outline-primary btn-sm btn-preview"
+   data-tipo="usuarios">
+  Vista previa
+</a>
+
+              <a href="{% url 'reporte_usuarios_excel' %}" class="btn report-btn btn-sm">
+                Descargar
+              </a>
+            </div>
           </div>
         </div>
 
@@ -90,9 +57,18 @@
             <p class="text-muted small">
               Historial de ingresos al<br> gimnasio.
             </p>
-            <a href="{% url 'reporte_ingresos_excel' %}" class="btn report-btn btn-sm">
-              <i></i> Descargar
-            </a>
+
+            <div class="d-flex justify-content-center gap-2">
+             <a href="#"
+   class="btn btn-outline-primary btn-sm btn-preview"
+   data-tipo="ingresos">
+  Vista previa
+</a>
+
+              <a href="{% url 'reporte_ingresos_excel' %}" class="btn report-btn btn-sm">
+                Descargar
+              </a>
+            </div>
           </div>
         </div>
 
@@ -106,9 +82,18 @@
             <p class="text-muted small">
               Usuarios con membresía <br>registrada.
             </p>
-            <a href="{% url 'reporte_membresias_excel' %}" class="btn report-btn btn-sm">
-              <i></i> Descargar
-            </a>
+
+            <div class="d-flex justify-content-center gap-2">
+              <a href="#"
+   class="btn btn-outline-primary btn-sm btn-preview"
+   data-tipo="membresias">
+  Vista previa
+</a>
+
+              <a href="{% url 'reporte_membresias_excel' %}" class="btn report-btn btn-sm">
+                Descargar
+              </a>
+            </div>
           </div>
         </div>
 
@@ -122,9 +107,18 @@
             <p class="text-muted small">
               Observaciones registradas en el <br>sistema.
             </p>
-            <a href="{% url 'reporte_observaciones_excel' %}" class="btn report-btn btn-sm">
-              <i></i> Descargar
-            </a>
+
+            <div class="d-flex justify-content-center gap-2">
+              <a href="#"
+   class="btn btn-outline-primary btn-sm btn-preview"
+   data-tipo="observaciones">
+  Vista previa
+</a>
+
+              <a href="{% url 'reporte_observaciones_excel' %}" class="btn report-btn btn-sm">
+                Descargar
+              </a>
+            </div>
           </div>
         </div>
 
@@ -133,4 +127,49 @@
 
   </div>
 </div>
+
+<div class="modal fade" id="modalPreview" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Vista previa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body" id="previewContent">
+        <div class="text-center text-muted py-5">
+          Cargando vista previa...
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll(".btn-preview").forEach(btn => {
+  btn.addEventListener("click", e => {
+    e.preventDefault();
+
+    const tipo = btn.dataset.tipo;
+    const modal = new bootstrap.Modal(
+      document.getElementById("modalPreview")
+    );
+
+    const content = document.getElementById("previewContent");
+    content.innerHTML = "Cargando vista previa...";
+
+    fetch(`/reportes/preview/${tipo}/`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+    .then(res => res.text())
+    .then(html => {
+      content.innerHTML = html;
+      modal.show();
+    });
+  });
+});
+</script>
+
 {% endblock %}

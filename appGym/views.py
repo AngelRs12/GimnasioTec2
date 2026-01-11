@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect
 from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.db import IntegrityError, transaction
 from django.views.decorators.http import require_POST
 import io
@@ -1939,3 +1939,100 @@ def guardar_carrusel(request):
                 destino.write(chunk)
 
     return JsonResponse({"success": True})
+
+REPORTES = {
+
+    "usuarios": {
+        "titulo": "Usuarios",
+        "descripcion": "El Excel contiene 4 hojas: Alumnos, Empleados, Externos y Representativos.",
+        "preview_query": """
+            SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno, 'Alumno' AS tipo
+            FROM public.alumno a
+            JOIN public.usuario u ON u.id_usuario = a.id_usuario
+            UNION ALL
+            SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno, 'Empleado'
+            FROM public.empleado e
+            JOIN public.usuario u ON u.id_usuario = e.id_usuario
+            UNION ALL
+            SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno, 'Externo'
+            FROM public.externo ex
+            JOIN public.usuario u ON u.id_usuario = ex.id_usuario
+            UNION ALL
+            SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno, 'Representativo'
+            FROM public.representativos r
+            JOIN public.usuario u ON u.id_usuario = r.id_usuario
+            ORDER BY id_usuario DESC
+        """
+    },
+
+    "ingresos": {
+        "titulo": "Entradas",
+        "descripcion": "El Excel contiene una hoja por día (Lunes a Viernes).",
+        "preview_query": """
+            SELECT
+                u.id_usuario,
+                u.nombres,
+                EXTRACT(DOW FROM i.fecha) AS dia,
+                EXTRACT(HOUR FROM i.fecha) AS hora,
+                i.fecha
+            FROM ingresos i
+            JOIN public.usuario u ON u.id_usuario = i.id_usuario
+            WHERE i.tipo = 'ENTRADA'
+              AND EXTRACT(HOUR FROM i.fecha) BETWEEN 8 AND 23
+            ORDER BY i.fecha DESC
+        """
+    },
+
+    "membresias": {
+        "titulo": "Membresías",
+        "preview_query": """
+            SELECT
+                u.id_usuario,
+                u.nombres,
+                u.apellido_paterno,
+                u.apellido_materno,
+                m.no_membresia,
+                m.fecha_inicial,
+                m.fecha_final,
+                m.status
+            FROM public.membresias m
+            JOIN public.usuario u ON u.id_usuario = m.id_usuario
+            ORDER BY m.fecha_inicial DESC
+        """
+    },
+
+    "observaciones": {
+        "titulo": "Observaciones",
+        "preview_query": """
+            SELECT
+                id_observacion,
+                fecha_observacion,
+                titulo,
+                descripcion
+            FROM public.observaciones
+            ORDER BY fecha_observacion DESC
+        """
+    },
+}
+
+def preview_reporte(request, tipo):
+    if tipo not in REPORTES:
+        raise Http404("Reporte no válido")
+
+    config = REPORTES[tipo]
+
+    with connection.cursor() as cursor:
+        cursor.execute(config["preview_query"])
+        rows = cursor.fetchall()
+        headers = [col[0] for col in cursor.description]
+
+    preview_rows = rows[:100]
+
+    return render(request, "gym/reportes/preview_modal_content.html", {
+        "titulo": config["titulo"],
+        "descripcion": config.get("descripcion"),
+        "headers": headers,
+        "rows": preview_rows,
+        "total": len(rows),
+        "tipo": tipo
+    })

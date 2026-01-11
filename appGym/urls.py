@@ -66,4 +66,6 @@ urlpatterns = [
     path("noticias/eliminar/", views.eliminar_noticia, name="eliminar_noticia"),
     path("listar_fotos_carrusel", views.listar_fotos_carrusel, name="listar_fotos_carrusel"),
     path("guardar_carrusel", views.guardar_carrusel, name="guardar_carrusel"),
+    path("reportes/preview/<str:tipo>/",views.preview_reporte,name="preview_reporte"),
+
     ]
