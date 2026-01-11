@@ -1043,19 +1043,20 @@ def reporte_ingresos_excel(request):
 
 def reporte_membresias_excel(request):
     query = """
-        SELECT
-            u.id_usuario,
-            u.nombres,
-            u.apellido_paterno,
-            u.apellido_materno,
-            m.id_membresia,
-            m.no_membresia,
-            m.fecha_inicial,
-            m.fecha_final,
-            m.status,
-            m.comentario
-        FROM public.membresias m
-        JOIN public.usuario u ON u.id_usuario = m.id_usuario;
+                    SELECT
+                u.id_usuario,
+                u.nombres,
+                u.apellido_paterno,
+                u.apellido_materno,
+                g.nombre AS tipo,
+                m.no_membresia,
+                m.fecha_inicial,
+                m.fecha_final,
+                m.status
+            FROM public.membresias m
+            JOIN public.usuario u ON u.id_usuario = m.id_usuario
+            JOIN public.membresias_general g ON m.id_membresia = g.id
+            ORDER BY m.fecha_inicial DESC
     """
 
     with connection.cursor() as cursor:
@@ -1991,12 +1992,14 @@ REPORTES = {
                 u.nombres,
                 u.apellido_paterno,
                 u.apellido_materno,
+                g.nombre AS tipo,
                 m.no_membresia,
                 m.fecha_inicial,
                 m.fecha_final,
                 m.status
             FROM public.membresias m
             JOIN public.usuario u ON u.id_usuario = m.id_usuario
+            JOIN public.membresias_general g ON m.id_membresia = g.id
             ORDER BY m.fecha_inicial DESC
         """
     },
