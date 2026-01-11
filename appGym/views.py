@@ -983,9 +983,11 @@ def reporte_usuarios_excel(request):
     return response
 
 def reporte_ingresos_excel(request):
+    inicio = request.GET.get("inicio")
+    fin = request.GET.get("fin")
     wb = Workbook()
     wb.remove(wb.active)  # eliminar hoja vacía inicial
-
+    
     dias = [
         ("Lunes", 1),
         ("Martes", 2),
@@ -1007,6 +1009,8 @@ def reporte_ingresos_excel(request):
         WHERE i.tipo = 'ENTRADA'
           AND EXTRACT(DOW FROM i.fecha) = %s
           AND EXTRACT(HOUR FROM i.fecha) BETWEEN 8 AND 23
+          AND (%s IS NULL OR i.fecha >= %s)
+          AND (%s IS NULL OR i.fecha <= %s)
         ORDER BY
             hora,
             i.fecha;
@@ -1014,7 +1018,7 @@ def reporte_ingresos_excel(request):
 
     for nombre_dia, dow in dias:
         with connection.cursor() as cursor:
-            cursor.execute(base_query, [dow])
+            cursor.execute(base_query, [dow,inicio, inicio, fin, fin])
             rows = cursor.fetchall()
             headers = [col[0] for col in cursor.description]
 
@@ -1042,39 +1046,56 @@ def reporte_ingresos_excel(request):
     return response
 
 def reporte_membresias_excel(request):
+    inicio = request.GET.get("inicio")
+    fin = request.GET.get("fin")
+    params = [inicio, inicio, fin, fin]
     query = """
-                    SELECT
-                u.id_usuario,
-                u.nombres,
-                u.apellido_paterno,
-                u.apellido_materno,
-                g.nombre AS tipo,
-                m.no_membresia,
-                m.fecha_inicial,
-                m.fecha_final,
-                m.status
-            FROM public.membresias m
-            JOIN public.usuario u ON u.id_usuario = m.id_usuario
-            JOIN public.membresias_general g ON m.id_membresia = g.id
-            ORDER BY m.fecha_inicial DESC
+        SELECT
+            u.id_usuario,
+            u.nombres,
+            m.no_membresia,
+            m.fecha_inicial,
+            m.fecha_final,
+            m.status
+        FROM public.membresias m
+        JOIN public.usuario u ON u.id_usuario = m.id_usuario
+        WHERE (%s IS NULL OR m.fecha_inicial >= %s)
+          AND (%s IS NULL OR m.fecha_final <= %s)
+        ORDER BY m.fecha_inicial DESC
     """
 
     with connection.cursor() as cursor:
-        cursor.execute(query)
+        if "%s" in query:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
         rows = cursor.fetchall()
         headers = [col[0] for col in cursor.description]
 
     return _exportar_excel("membresias.xlsx", headers, rows)
 
 def reporte_observaciones_excel(request):
+    inicio = request.GET.get("inicio")
+    fin = request.GET.get("fin")
+    params = [inicio, inicio, fin, fin]
     query = """
-        SELECT *
+        SELECT
+            id_observacion,
+            fecha_observacion,
+            titulo,
+            descripcion
         FROM public.observaciones
-        ORDER BY fecha_observacion DESC;
+        WHERE (%s IS NULL OR fecha_observacion >= %s)
+          AND (%s IS NULL OR fecha_observacion <= %s)
+        ORDER BY fecha_observacion DESC
     """
 
     with connection.cursor() as cursor:
-        cursor.execute(query)
+        if "%s" in query:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
         rows = cursor.fetchall()
         headers = [col[0] for col in cursor.description]
 
@@ -1967,75 +1988,85 @@ REPORTES = {
     },
 
     "ingresos": {
-        "titulo": "Entradas",
-        "descripcion": "El Excel contiene una hoja por día (Lunes a Viernes).",
-        "preview_query": """
-            SELECT
-                u.id_usuario,
-                u.nombres,
-                EXTRACT(DOW FROM i.fecha) AS dia,
-                EXTRACT(HOUR FROM i.fecha) AS hora,
-                i.fecha
-            FROM ingresos i
-            JOIN public.usuario u ON u.id_usuario = i.id_usuario
-            WHERE i.tipo = 'ENTRADA'
-              AND EXTRACT(HOUR FROM i.fecha) BETWEEN 8 AND 23
-            ORDER BY i.fecha DESC
-        """
-    },
+    "titulo": "Entradas",
+    "preview_query": """
+        SELECT
+            u.id_usuario,
+            u.nombres,
+            i.fecha,
+            i.tipo
+        FROM ingresos i
+        JOIN public.usuario u ON u.id_usuario = i.id_usuario
+          AND (%s IS NULL OR i.fecha >= %s)
+          AND (%s IS NULL OR i.fecha <= %s)
+        ORDER BY i.fecha DESC
+    """
+},
 
-    "membresias": {
-        "titulo": "Membresías",
-        "preview_query": """
-            SELECT
-                u.id_usuario,
-                u.nombres,
-                u.apellido_paterno,
-                u.apellido_materno,
-                g.nombre AS tipo,
-                m.no_membresia,
-                m.fecha_inicial,
-                m.fecha_final,
-                m.status
-            FROM public.membresias m
-            JOIN public.usuario u ON u.id_usuario = m.id_usuario
-            JOIN public.membresias_general g ON m.id_membresia = g.id
-            ORDER BY m.fecha_inicial DESC
-        """
-    },
 
-    "observaciones": {
-        "titulo": "Observaciones",
-        "preview_query": """
-            SELECT
-                id_observacion,
-                fecha_observacion,
-                titulo,
-                descripcion
-            FROM public.observaciones
-            ORDER BY fecha_observacion DESC
-        """
-    },
+"membresias": {
+    "titulo": "Membresías",
+    "preview_query": """
+        SELECT
+            u.id_usuario,
+            u.nombres,
+            m.no_membresia,
+            m.fecha_inicial,
+            m.fecha_final,
+            m.status
+        FROM public.membresias m
+        JOIN public.usuario u ON u.id_usuario = m.id_usuario
+        WHERE (%s IS NULL OR m.fecha_inicial >= %s)
+          AND (%s IS NULL OR m.fecha_final <= %s)
+        ORDER BY m.fecha_inicial DESC
+    """
+},
+
+
+"observaciones": {
+    "titulo": "Observaciones",
+    "preview_query": """
+        SELECT
+            id_observacion,
+            fecha_observacion,
+            titulo,
+            descripcion
+        FROM public.observaciones
+        WHERE (%s IS NULL OR fecha_observacion >= %s)
+          AND (%s IS NULL OR fecha_observacion <= %s)
+        ORDER BY fecha_observacion DESC
+    """
+},
+
 }
-
 def preview_reporte(request, tipo):
     if tipo not in REPORTES:
-        raise Http404("Reporte no válido")
+        raise Http404()
+
+    inicio = request.GET.get("inicio")
+    fin = request.GET.get("fin")
+
+    params = [inicio, inicio, fin, fin]
 
     config = REPORTES[tipo]
 
     with connection.cursor() as cursor:
-        cursor.execute(config["preview_query"])
+        if "%s" in config["preview_query"]:
+            cursor.execute(config["preview_query"], params)
+        else:
+            cursor.execute(config["preview_query"])
+
         rows = cursor.fetchall()
         headers = [col[0] for col in cursor.description]
 
-    preview_rows = rows[:100]
-
-    return render(request, "gym/reportes/preview_modal_content.html", {
-        "titulo": config["titulo"],
-        "descripcion": config.get("descripcion"),
-        "headers": headers,
-        "rows": preview_rows,
-        "total": len(rows),
-        "tipo": tipo
-    })
+    return render(
+        request,
+        "gym/reportes/preview_modal_content.html",
+        {
+            "titulo": config["titulo"],
+            "headers": headers,
+            "rows": rows[:100],
+            "total": len(rows),
+            "tipo": tipo,
+        }
+    )

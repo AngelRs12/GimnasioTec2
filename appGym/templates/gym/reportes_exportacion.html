@@ -35,14 +35,10 @@
 
             <div class="d-flex justify-content-center gap-2">
               <a href="#"
-   class="btn btn-outline-primary btn-sm btn-preview"
+   class="btn report-btn btn-sm btn-sm btn-preview"
    data-tipo="usuarios">
   Vista previa
 </a>
-
-              <a href="{% url 'reporte_usuarios_excel' %}" class="btn report-btn btn-sm">
-                Descargar
-              </a>
             </div>
           </div>
         </div>
@@ -58,17 +54,23 @@
               Historial de ingresos al<br> gimnasio.
             </p>
 
-            <div class="d-flex justify-content-center gap-2">
+            <div class="">
              <a href="#"
-   class="btn btn-outline-primary btn-sm btn-preview"
-   data-tipo="ingresos">
+   class="btn report-btn btn-sm btn-sm btn-preview"
+   data-tipo="ingresos"
+   data-fechas="true">
   Vista previa
 </a>
-
-              <a href="{% url 'reporte_ingresos_excel' %}" class="btn report-btn btn-sm">
-                Descargar
-              </a>
-            </div>
+</div>
+            <br>
+            <div class="row g-1 ">
+  <div class="col-6">
+    <input type="date" class="form-control form-control-sm fecha-inicio">
+  </div>
+  <div class="col-6">
+    <input type="date" class="form-control form-control-sm fecha-fin">
+  </div>
+</div>
           </div>
         </div>
 
@@ -83,17 +85,23 @@
               Usuarios con membresía <br>registrada.
             </p>
 
-            <div class="d-flex justify-content-center gap-2">
+            <div class="">
               <a href="#"
-   class="btn btn-outline-primary btn-sm btn-preview"
-   data-tipo="membresias">
+   class="btn report-btn btn-sm btn-sm btn-preview"
+   data-tipo="membresias"
+   data-fechas="true">
   Vista previa
 </a>
-
-              <a href="{% url 'reporte_membresias_excel' %}" class="btn report-btn btn-sm">
-                Descargar
-              </a>
             </div>
+            <br>
+            <div class="row g-1 ">
+  <div class="col-6">
+    <input type="date" class="form-control form-control-sm fecha-inicio">
+  </div>
+  <div class="col-6">
+    <input type="date" class="form-control form-control-sm fecha-fin">
+  </div>
+</div>
           </div>
         </div>
 
@@ -108,17 +116,24 @@
               Observaciones registradas en el <br>sistema.
             </p>
 
-            <div class="d-flex justify-content-center gap-2">
+            <div class="">
               <a href="#"
-   class="btn btn-outline-primary btn-sm btn-preview"
-   data-tipo="observaciones">
+   class="btn report-btn btn-sm btn-sm btn-preview"
+   data-tipo="observaciones"
+   data-fechas="true">
   Vista previa
 </a>
 
-              <a href="{% url 'reporte_observaciones_excel' %}" class="btn report-btn btn-sm">
-                Descargar
-              </a>
             </div>
+            <br>
+            <div class="row g-1 ">
+  <div class="col-6">
+    <input type="date" class="form-control form-control-sm fecha-inicio">
+  </div>
+  <div class="col-6">
+    <input type="date" class="form-control form-control-sm fecha-fin">
+  </div>
+</div>
           </div>
         </div>
 
@@ -153,6 +168,19 @@ document.querySelectorAll(".btn-preview").forEach(btn => {
     e.preventDefault();
 
     const tipo = btn.dataset.tipo;
+    const usaFechas = btn.dataset.fechas === "true";
+
+    let params = new URLSearchParams();
+
+    if (usaFechas) {
+      const card = btn.closest(".report-item");
+      const inicio = card.querySelector(".fecha-inicio").value;
+      const fin = card.querySelector(".fecha-fin").value;
+
+      if (inicio) params.append("inicio", inicio);
+      if (fin) params.append("fin", fin);
+    }
+
     const modal = new bootstrap.Modal(
       document.getElementById("modalPreview")
     );
@@ -160,14 +188,20 @@ document.querySelectorAll(".btn-preview").forEach(btn => {
     const content = document.getElementById("previewContent");
     content.innerHTML = "Cargando vista previa...";
 
-    fetch(`/reportes/preview/${tipo}/`, {
+    fetch(`/reportes/preview/${tipo}/?${params.toString()}`, {
       headers: { "X-Requested-With": "XMLHttpRequest" }
     })
     .then(res => res.text())
     .then(html => {
       content.innerHTML = html;
+
+      // 🔹 construir URL del excel con los mismos filtros
+      let excelParams = new URLSearchParams(params);
+      const excelUrl = `/reporte_${tipo}_excel/?${excelParams.toString()}`;
+
       modal.show();
     });
+
   });
 });
 </script>
