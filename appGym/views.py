@@ -765,6 +765,10 @@ def eliminar_membresia(request):
     return JsonResponse(result)
 
 
+from django.http import JsonResponse
+from django.db import connection
+
+
 def uso_gimnasio_data(request):
     query = """
         SELECT
@@ -772,10 +776,12 @@ def uso_gimnasio_data(request):
           COUNT(*) AS total
         FROM ingresos
         WHERE tipo = 'ENTRADA'
+          AND DATE_TRUNC('week', fecha) = DATE_TRUNC('week', CURRENT_DATE)
           AND EXTRACT(DOW FROM fecha) BETWEEN 1 AND 5
         GROUP BY dia
         ORDER BY dia;
     """
+
     try:
         with connection.cursor() as cursor:
             cursor.execute(query)
@@ -793,7 +799,9 @@ def uso_gimnasio_data(request):
 
     labels = []
     data = []
-    conteo_por_dia = {k: 0 for k in dias_map.keys()}
+
+    # Inicializar conteos en 0 para toda la semana
+    conteo_por_dia = {dia: 0 for dia in range(1, 6)}
 
     for dia, total in rows:
         conteo_por_dia[int(dia)] = int(total)
@@ -806,6 +814,7 @@ def uso_gimnasio_data(request):
         "labels": labels,
         "data": data
     })
+
 
 def uso_gimnasio_por_hora_data(request):
     query = """
@@ -859,10 +868,18 @@ def uso_gimnasio_por_hora_data(request):
 
 def _fetch_users_rows():
     query = """
-       SELECT u.id_usuario, u.nombres, u.apellido_paterno, u.apellido_materno,
-              COALESCE(v.tipo, 'desconocido') AS tipo
+       SELECT u.id_usuario,
+              u.nombres,
+              u.apellido_paterno,
+              u.apellido_materno,
+              COALESCE(v.tipo, 'desconocido') AS tipo,
+              CASE
+                  WHEN ma.id_usuario IS NOT NULL THEN 'con_membresia'
+                  ELSE 'sin_membresia'
+              END AS membresia
        FROM public.usuario u
        LEFT JOIN public.vista_tipo_usuario v ON v.id_usuario = u.id_usuario
+       LEFT JOIN public.vista_membresia_activa ma ON ma.id_usuario = u.id_usuario
        ORDER BY u.id_usuario;
     """
     with connection.cursor() as cursor:
@@ -870,14 +887,20 @@ def _fetch_users_rows():
         rows = cursor.fetchall()
     return rows
 
+
 def _build_counts_from_rows(rows):
     counts = {}
     for r in rows:
         tipo = (r[4] or 'desconocido')
         counts[tipo] = counts.get(tipo, 0) + 1
 
-    expected_order = ['alumno', 'representativo', 'externo']
-    friendly = {'alumno': 'Alumno', 'representativo': 'Representativo', 'externo': 'Externo', 'desconocido': 'Desconocido'}
+    expected_order = ['alumno', 'representativo', 'externo', 'con_membresia']
+    friendly = {'con_membresia': 'Con membresía activa',
+    'representativo': 'Representativo',
+    'empleado': 'Empleado',
+    'alumno': 'Alumno',
+    'externo': 'Externo',
+    'desconocido': 'Desconocido'}
 
     labels = []
     data = []
@@ -917,10 +940,21 @@ def reportes_data(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+import io
+from django.db import connection
+
+
 def reporte_usuarios_excel(request):
     wb = Workbook()
     wb.remove(wb.active)
 
+    # =========================
+    # HOJAS DE USUARIOS
+    # =========================
     consultas = [
         (
             "Alumnos",
@@ -971,6 +1005,65 @@ def reporte_usuarios_excel(request):
         for i in range(1, len(headers) + 1):
             ws.column_dimensions[get_column_letter(i)].width = 22
 
+    # =========================
+    # HOJA DE DATOS PARA GRÁFICA
+    # =========================
+    ws_data = wb.create_sheet(title="Resumen Grafica")
+
+    ws_data.append(["Tipo de usuario", "Cantidad"])
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT tipo, COUNT(*)
+            FROM vista_tipo_usuario
+            WHERE tipo <> 'desconocido'
+            GROUP BY tipo
+            ORDER BY tipo;
+        """)
+        resultados = cursor.fetchall()
+
+    for tipo, total in resultados:
+        ws_data.append([tipo.replace('_', ' ').title(), total])
+
+    for col in range(1, 3):
+        ws_data.column_dimensions[get_column_letter(col)].width = 30
+
+    # =========================
+    # HOJA DE GRÁFICA
+    # =========================
+    ws_chart = wb.create_sheet(title="Grafica Usuarios")
+
+    chart = BarChart()
+    chart.title = "Usuarios por tipo"
+    chart.y_axis.title = "Cantidad"
+    chart.x_axis.title = "Tipo de usuario"
+    chart.style = 10
+
+    data = Reference(
+        ws_data,
+        min_col=2,
+        min_row=1,
+        max_row=ws_data.max_row
+    )
+
+    categories = Reference(
+        ws_data,
+        min_col=1,
+        min_row=2,
+        max_row=ws_data.max_row
+    )
+
+    chart.add_data(data, titles_from_data=True)
+    chart.set_categories(categories)
+
+    chart.height = 12
+    chart.width = 22
+
+    ws_chart.add_chart(chart, "B2")
+
+    # =========================
+    # EXPORTAR EXCEL
+    # =========================
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
@@ -981,6 +1074,15 @@ def reporte_usuarios_excel(request):
     )
     response["Content-Disposition"] = 'attachment; filename="usuarios.xlsx"'
     return response
+
+
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+from django.db import connection
+import io
+
 
 def reporte_ingresos_excel(request):
     wb = Workbook()
@@ -1012,6 +1114,9 @@ def reporte_ingresos_excel(request):
             i.fecha;
     """
 
+    # =========================
+    # HOJAS POR DÍA (DETALLE)
+    # =========================
     for nombre_dia, dow in dias:
         with connection.cursor() as cursor:
             cursor.execute(base_query, [dow])
@@ -1024,10 +1129,78 @@ def reporte_ingresos_excel(request):
         for row in rows:
             ws.append(row)
 
-        # Ajustar ancho de columnas
         for i in range(1, len(headers) + 1):
             ws.column_dimensions[get_column_letter(i)].width = 22
 
+    # =========================
+    # HOJA RESUMEN (PARA GRÁFICA)
+    # =========================
+    ws_resumen = wb.create_sheet(title="Resumen Ingresos")
+    ws_resumen.append(["Día", "Total de ingresos"])
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                CASE EXTRACT(DOW FROM fecha)
+                    WHEN 1 THEN 'Lunes'
+                    WHEN 2 THEN 'Martes'
+                    WHEN 3 THEN 'Miércoles'
+                    WHEN 4 THEN 'Jueves'
+                    WHEN 5 THEN 'Viernes'
+                END AS dia,
+                COUNT(*) AS total
+            FROM ingresos
+            WHERE tipo = 'ENTRADA'
+              AND EXTRACT(DOW FROM fecha) BETWEEN 1 AND 5
+              AND EXTRACT(HOUR FROM fecha) BETWEEN 8 AND 23
+            GROUP BY dia
+            ORDER BY
+                MIN(EXTRACT(DOW FROM fecha));
+        """)
+        resumen_rows = cursor.fetchall()
+
+    for dia, total in resumen_rows:
+        ws_resumen.append([dia, total])
+
+    for i in range(1, 3):
+        ws_resumen.column_dimensions[get_column_letter(i)].width = 30
+
+    # =========================
+    # HOJA DE GRÁFICA
+    # =========================
+    ws_chart = wb.create_sheet(title="Grafica Ingresos")
+
+    chart = BarChart()
+    chart.title = "Ingresos al gimnasio por día"
+    chart.y_axis.title = "Cantidad de ingresos"
+    chart.x_axis.title = "Día"
+    chart.style = 10
+
+    data = Reference(
+        ws_resumen,
+        min_col=2,
+        min_row=1,
+        max_row=ws_resumen.max_row
+    )
+
+    categories = Reference(
+        ws_resumen,
+        min_col=1,
+        min_row=2,
+        max_row=ws_resumen.max_row
+    )
+
+    chart.add_data(data, titles_from_data=True)
+    chart.set_categories(categories)
+
+    chart.width = 22
+    chart.height = 12
+
+    ws_chart.add_chart(chart, "B2")
+
+    # =========================
+    # EXPORTAR EXCEL
+    # =========================
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
@@ -1041,7 +1214,22 @@ def reporte_ingresos_excel(request):
     )
     return response
 
+
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+from django.db import connection
+import io
+
+
 def reporte_membresias_excel(request):
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    # =========================
+    # HOJA DETALLE MEMBRESIAS
+    # =========================
     query = """
         SELECT
             u.id_usuario,
@@ -1063,9 +1251,103 @@ def reporte_membresias_excel(request):
         rows = cursor.fetchall()
         headers = [col[0] for col in cursor.description]
 
-    return _exportar_excel("membresias.xlsx", headers, rows)
+    ws_detalle = wb.create_sheet(title="Membresias")
+    ws_detalle.append(headers)
+
+    for row in rows:
+        ws_detalle.append(row)
+
+    for i in range(1, len(headers) + 1):
+        ws_detalle.column_dimensions[get_column_letter(i)].width = 22
+
+    # =========================
+    # HOJA RESUMEN (PARA GRAFICA)
+    # =========================
+    ws_resumen = wb.create_sheet(title="Resumen Membresias")
+    ws_resumen.append(["Status", "Cantidad"])
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                status,
+                COUNT(*) AS total
+            FROM membresias
+            GROUP BY status
+            ORDER BY status;
+        """)
+        resumen_rows = cursor.fetchall()
+
+    for status, total in resumen_rows:
+        ws_resumen.append([status.title(), total])
+
+    for i in range(1, 3):
+        ws_resumen.column_dimensions[get_column_letter(i)].width = 30
+
+    # =========================
+    # HOJA DE GRAFICA
+    # =========================
+    ws_chart = wb.create_sheet(title="Grafica Membresias")
+
+    chart = BarChart()
+    chart.title = "Membresías por estado"
+    chart.y_axis.title = "Cantidad"
+    chart.x_axis.title = "Estado"
+    chart.style = 10
+
+    data = Reference(
+        ws_resumen,
+        min_col=2,
+        min_row=1,
+        max_row=ws_resumen.max_row
+    )
+
+    categories = Reference(
+        ws_resumen,
+        min_col=1,
+        min_row=2,
+        max_row=ws_resumen.max_row
+    )
+
+    chart.add_data(data, titles_from_data=True)
+    chart.set_categories(categories)
+
+    chart.width = 22
+    chart.height = 12
+
+    ws_chart.add_chart(chart, "B2")
+
+    # =========================
+    # EXPORTAR EXCEL
+    # =========================
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="membresias.xlsx"'
+    )
+    return response
+
+
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+from django.db import connection
+import io
+
 
 def reporte_observaciones_excel(request):
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    # =========================
+    # HOJA DETALLE OBSERVACIONES
+    # =========================
     query = """
         SELECT *
         FROM public.observaciones
@@ -1077,7 +1359,86 @@ def reporte_observaciones_excel(request):
         rows = cursor.fetchall()
         headers = [col[0] for col in cursor.description]
 
-    return _exportar_excel("observaciones.xlsx", headers, rows)
+    ws_detalle = wb.create_sheet(title="Observaciones")
+    ws_detalle.append(headers)
+
+    for row in rows:
+        ws_detalle.append(row)
+
+    for i in range(1, len(headers) + 1):
+        ws_detalle.column_dimensions[get_column_letter(i)].width = 22
+
+    # =========================
+    # HOJA RESUMEN (PARA GRAFICA)
+    # =========================
+    ws_resumen = wb.create_sheet(title="Resumen Observaciones")
+    ws_resumen.append(["Mes", "Total de observaciones"])
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                TO_CHAR(fecha_observacion, 'YYYY-MM') AS mes,
+                COUNT(*) AS total
+            FROM observaciones
+            GROUP BY mes
+            ORDER BY mes;
+        """)
+        resumen_rows = cursor.fetchall()
+
+    for mes, total in resumen_rows:
+        ws_resumen.append([mes, total])
+
+    for i in range(1, 3):
+        ws_resumen.column_dimensions[get_column_letter(i)].width = 30
+
+    # =========================
+    # HOJA DE GRAFICA
+    # =========================
+    ws_chart = wb.create_sheet(title="Grafica Observaciones")
+
+    chart = BarChart()
+    chart.title = "Observaciones por mes"
+    chart.y_axis.title = "Cantidad"
+    chart.x_axis.title = "Mes"
+    chart.style = 10
+
+    data = Reference(
+        ws_resumen,
+        min_col=2,
+        min_row=1,
+        max_row=ws_resumen.max_row
+    )
+
+    categories = Reference(
+        ws_resumen,
+        min_col=1,
+        min_row=2,
+        max_row=ws_resumen.max_row
+    )
+
+    chart.add_data(data, titles_from_data=True)
+    chart.set_categories(categories)
+
+    chart.width = 22
+    chart.height = 12
+
+    ws_chart.add_chart(chart, "B2")
+
+    # =========================
+    # EXPORTAR EXCEL
+    # =========================
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="observaciones.xlsx"'
+    )
+    return response
 
 def _exportar_excel(nombre_archivo, headers, rows):
     wb = Workbook()

@@ -43,7 +43,7 @@
 <div class="container mt-5">
   <div class="card report-card shadow-lg">
     <div class="card-header report-header text-center">
-      <h3 class="mb-0">Reportes de Usuarios</h3>
+      <h3 class="mb-0">Graficas de Usuarios</h3>
       <p class="mt-2">Gráficas basadas en los usuarios registrados en el gimnasio.</p>
     </div>
 
@@ -218,11 +218,29 @@ document.addEventListener("DOMContentLoaded", () => {
             borderWidth: 1
           }]
         },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-          plugins: { legend: { display: false } }
-        }
+       options: {
+  responsive: true,
+  scales: {
+    x: {
+      ticks: {
+        font: {
+          size: 10   // ⬅️ texto más pequeño
+        },
+        maxRotation: 0,
+        minRotation: 0
+      }
+    },
+    y: {
+      beginAtZero: true,
+      ticks: {
+        precision: 0
+      }
+    }
+  },
+  plugins: {
+    legend: { display: false }
+  }
+}
       });
       
 
