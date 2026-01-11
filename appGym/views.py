@@ -1075,15 +1075,6 @@ def reporte_usuarios_excel(request):
     response["Content-Disposition"] = 'attachment; filename="usuarios.xlsx"'
     return response
 
-
-from openpyxl import Workbook
-from openpyxl.chart import BarChart, Reference
-from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
-from django.db import connection
-import io
-
-
 def reporte_ingresos_excel(request):
     inicio = request.GET.get("inicio")
     fin = request.GET.get("fin")
@@ -1219,15 +1210,10 @@ def reporte_ingresos_excel(request):
     return response
 
 
-from openpyxl import Workbook
-from openpyxl.chart import BarChart, Reference
-from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
-from django.db import connection
-import io
-
-
 def reporte_membresias_excel(request):
+    wb = Workbook()
+    wb.remove(wb.active)
+
     inicio = request.GET.get("inicio")
     fin = request.GET.get("fin")
     params = [inicio, inicio, fin, fin]
@@ -1337,14 +1323,6 @@ def reporte_membresias_excel(request):
         'attachment; filename="membresias.xlsx"'
     )
     return response
-
-
-from openpyxl import Workbook
-from openpyxl.chart import BarChart, Reference
-from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
-from django.db import connection
-import io
 
 
 def reporte_observaciones_excel(request):
