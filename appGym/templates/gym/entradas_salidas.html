@@ -215,8 +215,9 @@ async function actualizarContador() {
       document.getElementById("detalle-id").textContent = "ID: " + u.id_usuario;
       document.getElementById("detalle-tipo").textContent =
         "Tipo: " + u.tipo_usuario;
-      document.getElementById("detalle-foto").src =
-        u.foto || "https://via.placeholder.com/80";
+      document.getElementById("detalle-foto").src =u.foto
+  ? `/media/${u.foto}`
+  : "/media/fotos_usuarios/default.jpg";
     }
 
     document.getElementById("btn-entrada").onclick = () => {

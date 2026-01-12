@@ -1090,23 +1090,37 @@ def reporte_ingresos_excel(request):
     ]
 
     base_query = """
-        SELECT
-            u.id_usuario,
-            u.nombres,
-            u.apellido_paterno,
-            u.apellido_materno,
-            EXTRACT(HOUR FROM i.fecha) AS hora,
-            i.fecha AS fecha_completa
-        FROM ingresos i
-        JOIN public.usuario u ON u.id_usuario = i.id_usuario
-        WHERE i.tipo = 'ENTRADA'
-          AND EXTRACT(DOW FROM i.fecha) = %s
-          AND EXTRACT(HOUR FROM i.fecha) BETWEEN 8 AND 23
-          AND (%s IS NULL OR i.fecha >= %s)
-          AND (%s IS NULL OR i.fecha <= %s)
-        ORDER BY
-            hora,
-            i.fecha;
+ SELECT
+    u.id_usuario,
+    u.nombres,
+    u.apellido_paterno,
+    u.apellido_materno,
+    i.fecha AS entrada,
+    s.fecha AS salida
+FROM ingresos i
+JOIN public.usuario u
+    ON u.id_usuario = i.id_usuario
+
+-- buscamos la salida MÁS CERCANA, SOLO del mismo día
+LEFT JOIN LATERAL (
+    SELECT i2.fecha
+    FROM ingresos i2
+    WHERE i2.id_usuario = i.id_usuario
+      AND i2.tipo = 'SALIDA'
+      AND i2.fecha > i.fecha
+      AND DATE(i2.fecha) = DATE(i.fecha)   -- 🔴 MISMO DÍA
+    ORDER BY i2.fecha
+    LIMIT 1
+) s ON TRUE
+
+WHERE i.tipo = 'ENTRADA'
+  AND EXTRACT(DOW FROM i.fecha) = %s
+  AND EXTRACT(HOUR FROM i.fecha) BETWEEN 8 AND 23
+  AND (%s IS NULL OR i.fecha >= %s)
+  AND (%s IS NULL OR i.fecha <= %s)
+
+ORDER BY i.fecha;
+
     """
 
     # =========================
@@ -1148,10 +1162,12 @@ def reporte_ingresos_excel(request):
             WHERE tipo = 'ENTRADA'
               AND EXTRACT(DOW FROM fecha) BETWEEN 1 AND 5
               AND EXTRACT(HOUR FROM fecha) BETWEEN 8 AND 23
+              AND (%s IS NULL OR fecha >= %s)
+          AND (%s IS NULL OR fecha <= %s)
             GROUP BY dia
             ORDER BY
                 MIN(EXTRACT(DOW FROM fecha));
-        """)
+        """, [inicio, inicio, fin, fin])
         resumen_rows = cursor.fetchall()
 
     for dia, total in resumen_rows:
@@ -1192,6 +1208,170 @@ def reporte_ingresos_excel(request):
     chart.height = 12
 
     ws_chart.add_chart(chart, "B2")
+ # ======================================================
+    # RESUMEN POR 4 PERIODOS AUTOMÁTICOS
+    # ======================================================
+    ws_resumen_periodos = wb.create_sheet(title="Resumen Periodos")
+    ws_resumen_periodos.append(["Periodo", "Total de ingresos"])
+
+    sql_periodos = """
+        WITH rango AS (
+            SELECT
+                MIN(fecha) AS fecha_min,
+                MAX(fecha) AS fecha_max,
+                EXTRACT(EPOCH FROM MIN(fecha)) AS epoch_min,
+                EXTRACT(EPOCH FROM MAX(fecha)) AS epoch_max
+            FROM ingresos
+            WHERE tipo = 'ENTRADA'
+              AND (%s IS NULL OR fecha >= %s)
+              AND (%s IS NULL OR fecha <= %s)
+        ),
+        periodos AS (
+            SELECT
+                CASE
+                    WHEN rango.epoch_min = rango.epoch_max THEN 1
+                    ELSE width_bucket(
+                        EXTRACT(EPOCH FROM i.fecha),
+                        rango.epoch_min,
+                        rango.epoch_max,
+                        4
+                    )
+                END AS periodo
+            FROM ingresos i
+            CROSS JOIN rango
+            WHERE i.tipo = 'ENTRADA'
+              AND (%s IS NULL OR i.fecha >= %s)
+              AND (%s IS NULL OR i.fecha <= %s)
+        ),
+        conteo AS (
+            SELECT periodo, COUNT(*) AS total
+            FROM periodos
+            GROUP BY periodo
+        ),
+        todos_periodos AS (
+            SELECT generate_series(1, 4) AS periodo
+        )
+        SELECT
+            CONCAT(
+                'Periodo ', p.periodo,
+                ' (',
+                TO_CHAR(
+                    rango.fecha_min
+                    + (p.periodo - 1)
+                      * (rango.fecha_max - rango.fecha_min) / 4,
+                    'YYYY-MM-DD'
+                ),
+                ' a ',
+                TO_CHAR(
+                    rango.fecha_min
+                    + p.periodo
+                      * (rango.fecha_max - rango.fecha_min) / 4,
+                    'YYYY-MM-DD'
+                ),
+                ')'
+            ) AS periodo,
+            COALESCE(c.total, 0) AS total
+        FROM todos_periodos p
+        CROSS JOIN rango
+        LEFT JOIN conteo c ON c.periodo = p.periodo
+        ORDER BY p.periodo;
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            sql_periodos,
+            [inicio, inicio, fin, fin,
+             inicio, inicio, fin, fin]
+        )
+        rows = cursor.fetchall()
+
+    for periodo, total in rows:
+        ws_resumen_periodos.append([periodo, total])
+
+    # ======================================================
+    # GRÁFICA POR PERIODOS
+    # ======================================================
+    ws_chart_periodos = wb.create_sheet(title="Gráfica Periodos")
+
+    chart_p = BarChart()
+    chart_p.title = "Ingresos por periodo"
+    chart_p.y_axis.title = "Ingresos"
+    chart_p.x_axis.title = "Periodo"
+
+    chart_p.add_data(
+        Reference(ws_resumen_periodos, min_col=2, min_row=1, max_row=ws_resumen_periodos.max_row),
+        titles_from_data=True
+    )
+    chart_p.set_categories(
+        Reference(ws_resumen_periodos, min_col=1, min_row=2, max_row=ws_resumen_periodos.max_row)
+    )
+
+    chart_p.width = 22
+    chart_p.height = 12
+    ws_chart_periodos.add_chart(chart_p, "B2")
+    
+    # ======================================================
+    # RESUMEN SEMANAL
+    # ======================================================
+    ws_resumen_semanal = wb.create_sheet(title="Resumen Semanal")
+    ws_resumen_semanal.append(["Semana", "Total de ingresos"])
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                TO_CHAR(fecha, 'IYYY-IW') AS semana,
+                COUNT(*) AS total
+            FROM ingresos
+            WHERE tipo = 'ENTRADA'
+            AND EXTRACT(HOUR FROM fecha) BETWEEN 8 AND 23
+            AND (%s IS NULL OR fecha >= %s)
+            AND (%s IS NULL OR fecha <= %s)
+            GROUP BY semana
+            ORDER BY semana;
+        """, [inicio, inicio, fin, fin])
+
+        rows = cursor.fetchall()
+
+    for semana, total in rows:
+        ws_resumen_semanal.append([semana, total])
+
+    for i in range(1, 3):
+        ws_resumen_semanal.column_dimensions[get_column_letter(i)].width = 30
+
+    from openpyxl.chart import LineChart
+
+# ======================================================
+# GRÁFICA SEMANAL (LINEA)
+# ======================================================
+    ws_chart_semanal = wb.create_sheet(title="Gráfica Semanal")
+
+    chart_sem = LineChart()
+    chart_sem.title = "Ingresos semanales"
+    chart_sem.y_axis.title = "Cantidad de ingresos"
+    chart_sem.x_axis.title = "Semana (ISO)"
+    chart_sem.style = 10
+
+    data = Reference(
+        ws_resumen_semanal,
+        min_col=2,
+        min_row=1,
+        max_row=ws_resumen_semanal.max_row
+    )
+
+    categories = Reference(
+        ws_resumen_semanal,
+        min_col=1,
+        min_row=2,
+        max_row=ws_resumen_semanal.max_row
+    )
+
+    chart_sem.add_data(data, titles_from_data=True)
+    chart_sem.set_categories(categories)
+
+    chart_sem.width = 28
+    chart_sem.height = 12
+
+    ws_chart_semanal.add_chart(chart_sem, "B2")
 
     # =========================
     # EXPORTAR EXCEL
@@ -1264,9 +1444,11 @@ def reporte_membresias_excel(request):
                 status,
                 COUNT(*) AS total
             FROM membresias
+            WHERE (%s IS NULL OR fecha_inicial >= %s)
+          AND (%s IS NULL OR fecha_final <= %s)
             GROUP BY status
             ORDER BY status;
-        """)
+        """,[inicio, inicio, fin, fin])
         resumen_rows = cursor.fetchall()
 
     for status, total in resumen_rows:
@@ -1307,6 +1489,118 @@ def reporte_membresias_excel(request):
     chart.height = 12
 
     ws_chart.add_chart(chart, "B2")
+    # =========================
+    # HOJA HISTOGRAMA POR PERIODOS DINAMICOS
+    # =========================
+    ws_hist = wb.create_sheet(title="Histograma Membresias")
+    ws_hist.append(["Periodo", "Total de membresías"])
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+        WITH rango AS (
+            SELECT
+                MIN(fecha_inicial) AS fecha_min,
+                MAX(fecha_inicial) AS fecha_max,
+                EXTRACT(EPOCH FROM MIN(fecha_inicial)) AS epoch_min,
+                EXTRACT(EPOCH FROM MAX(fecha_inicial)) AS epoch_max
+            FROM membresias
+            WHERE (%s IS NULL OR fecha_inicial >= %s)
+            AND (%s IS NULL OR fecha_inicial <= %s)
+        ),
+        periodos AS (
+            SELECT
+                CASE
+                    WHEN rango.epoch_min = rango.epoch_max THEN 1
+                    ELSE width_bucket(
+                        EXTRACT(EPOCH FROM fecha_inicial),
+                        rango.epoch_min,
+                        rango.epoch_max,
+                        4
+                    )
+                END AS periodo
+            FROM membresias
+            CROSS JOIN rango
+            WHERE (%s IS NULL OR fecha_inicial >= %s)
+            AND (%s IS NULL OR fecha_inicial <= %s)
+        ),
+        conteo AS (
+            SELECT periodo, COUNT(*) AS total
+            FROM periodos
+            GROUP BY periodo
+        ),
+        todos_periodos AS (
+            SELECT generate_series(1, 4) AS periodo
+        )
+        SELECT
+            CONCAT(
+                'Periodo ',
+                p.periodo,
+                ' (',
+                TO_CHAR(
+                    rango.fecha_min
+                    + (p.periodo - 1)
+                    * (rango.fecha_max - rango.fecha_min) / 4,
+                    'YYYY-MM-DD'
+                ),
+                ' a ',
+                TO_CHAR(
+                    rango.fecha_min
+                    + p.periodo
+                    * (rango.fecha_max - rango.fecha_min) / 4,
+                    'YYYY-MM-DD'
+                ),
+                ')'
+            ) AS periodo_label,
+            COALESCE(c.total, 0) AS total
+        FROM todos_periodos p
+        CROSS JOIN rango
+        LEFT JOIN conteo c ON c.periodo = p.periodo
+        ORDER BY p.periodo;
+
+
+        """, [
+            inicio, inicio, fin, fin,
+            inicio, inicio, fin, fin
+        ])
+
+        hist_rows = cursor.fetchall()
+
+    for periodo, total in hist_rows:
+        ws_hist.append([periodo, total])
+
+    for i in range(1, 3):
+        ws_hist.column_dimensions[get_column_letter(i)].width = 45
+
+    # =========================
+    # GRAFICA HISTOGRAMA MEMBRESIAS
+    # =========================
+    chart_hist = BarChart()
+    chart_hist.title = "Membresías tramitadas por período"
+    chart_hist.y_axis.title = "Cantidad"
+    chart_hist.x_axis.title = "Período"
+    chart_hist.style = 10
+
+    data = Reference(
+        ws_hist,
+        min_col=2,
+        min_row=1,
+        max_row=ws_hist.max_row
+    )
+
+    categories = Reference(
+        ws_hist,
+        min_col=1,
+        min_row=2,
+        max_row=ws_hist.max_row
+    )
+
+    chart_hist.add_data(data, titles_from_data=True)
+    chart_hist.set_categories(categories)
+
+    chart_hist.width = 26
+    chart_hist.height = 12
+
+    ws_hist.add_chart(chart_hist, "D2")
 
     # =========================
     # EXPORTAR EXCEL
@@ -1376,9 +1670,12 @@ def reporte_observaciones_excel(request):
                 TO_CHAR(fecha_observacion, 'YYYY-MM') AS mes,
                 COUNT(*) AS total
             FROM observaciones
+            
+        WHERE (%s IS NULL OR fecha_observacion >= %s)
+          AND (%s IS NULL OR fecha_observacion <= %s)
             GROUP BY mes
             ORDER BY mes;
-        """)
+        """,[inicio, inicio, fin, fin])
         resumen_rows = cursor.fetchall()
 
     for mes, total in resumen_rows:
@@ -1420,6 +1717,60 @@ def reporte_observaciones_excel(request):
 
     ws_chart.add_chart(chart, "B2")
 
+
+    ws_hist = wb.create_sheet(title="Histograma Observaciones")
+    ws_hist.append(["Fecha", "Total de observaciones"])
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                DATE(fecha_observacion) AS fecha,
+                COUNT(*) AS total
+            FROM observaciones
+            WHERE (%s IS NULL OR fecha_observacion >= %s)
+            AND (%s IS NULL OR fecha_observacion <= %s)
+            GROUP BY DATE(fecha_observacion)
+            ORDER BY fecha;
+        """, [inicio, inicio, fin, fin])
+
+        hist_rows = cursor.fetchall()
+
+    for fecha, total in hist_rows:
+        ws_hist.append([fecha, total])
+
+    for i in range(1, 3):
+        ws_hist.column_dimensions[get_column_letter(i)].width = 25
+    # =========================
+    # GRÁFICA HISTOGRAMA
+    # =========================
+    chart_hist = BarChart()
+    chart_hist.title = "Histograma de observaciones por fecha"
+    chart_hist.y_axis.title = "Cantidad"
+    chart_hist.x_axis.title = "Fecha"
+    chart_hist.style = 10
+
+    data = Reference(
+        ws_hist,
+        min_col=2,
+        min_row=1,
+        max_row=ws_hist.max_row
+    )
+
+    categories = Reference(
+        ws_hist,
+        min_col=1,
+        min_row=2,
+        max_row=ws_hist.max_row
+    )
+
+    chart_hist.add_data(data, titles_from_data=True)
+    chart_hist.set_categories(categories)
+
+    chart_hist.width = 26
+    chart_hist.height = 12
+
+    ws_hist.add_chart(chart_hist, "D2")
+
     # =========================
     # EXPORTAR EXCEL
     # =========================
@@ -1459,7 +1810,6 @@ def _exportar_excel(nombre_archivo, headers, rows):
     )
     response["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
     return response
-
 
 def actividad_eliminar(request, id_actividad):
     if request.method != "POST":

@@ -214,41 +214,53 @@ Gimnasio{% endblock %} {% block content %}
 <script>
   document.addEventListener("DOMContentLoaded", () => {
   document.body.addEventListener("click", async (e) => {
-    if (e.target.id === "btnDescargarExcel") {
+if (e.target.id === "btnDescargarExcel") {
 
-      const url = e.target.dataset.url;
+  const url = e.target.dataset.url;
 
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error();
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error();
 
-        const blob = await response.blob();
-        const objectUrl = window.URL.createObjectURL(blob);
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
 
-        const a = document.createElement("a");
-        a.href = objectUrl;
-        a.download = "membresias.xlsx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+    // 🔴 LEER EL NOMBRE DESDE EL HEADER
+    let filename = "reporte.xlsx";
+    const disposition = response.headers.get("Content-Disposition");
 
-        window.URL.revokeObjectURL(objectUrl);
-
-        document.getElementById("alertaDescarga").innerHTML = `
-          <div class="alert alert-success alert-dismissible fade show">
-            El archivo Excel se descargó correctamente.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        `;
-      } catch {
-        document.getElementById("alertaDescarga").innerHTML = `
-          <div class="alert alert-danger alert-dismissible fade show">
-            Error al descargar el archivo Excel.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        `;
-      }
+    if (disposition && disposition.includes("filename=")) {
+      filename = disposition
+        .split("filename=")[1]
+        .replace(/"/g, "")
+        .trim();
     }
+
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;   // ✅ NOMBRE CORRECTO
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(objectUrl);
+
+    document.getElementById("alertaDescarga").innerHTML = `
+      <div class="alert alert-success alert-dismissible fade show">
+        El archivo Excel se descargó correctamente.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+
+  } catch {
+    document.getElementById("alertaDescarga").innerHTML = `
+      <div class="alert alert-danger alert-dismissible fade show">
+        Error al descargar el archivo Excel.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+  }
+}
   });
 });
   document.querySelectorAll(".btn-preview").forEach((btn) => {
