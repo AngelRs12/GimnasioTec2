@@ -1,1 +1,7 @@
-
+requests
+numpy
+pandas
+psycorg2
+django
+django-boostrap-v5
+openpyxl
