@@ -77,10 +77,10 @@ WSGI_APPLICATION = 'gimnasio.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Gimnasio',          # Nombre de tu base de datos
-        'USER': 'postgres',        # Usuario de PostgreSQL
-        'PASSWORD': '2004',      # Contraseña del usuario
-        'HOST': 'localhost',      # O la IP del servidor
+        'NAME': 'gimnasio_1188',          # Nombre de tu base de datos
+        'USER': 'gimnasio_1188_user',        # Usuario de PostgreSQL
+        'PASSWORD': 'KBkxqudjTutGnhfM31AE66lQbn5PBUYa',      # Contraseña del usuario
+        'HOST': 'dpg-d5il2b7gi27c73duq9fg-a',      # O la IP del servidor
         'PORT': '5432',           # Puerto por defecto de PostgreSQL
 }
 }
