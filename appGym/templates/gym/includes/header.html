@@ -11,21 +11,35 @@
 
 <style>
   /* Estilos para la barra lateral */
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    overflow: scroll;
-    height: 100vh;
-    width: 220px;
-    background-color: #212529;
-    color: white;
-    transition: transform 0.3s ease;
-    transform: translateX(-100%);
-    z-index: 1050;
-    display: flex;
-    flex-direction: column;
-  }
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  height: 100vh;
+  width: 220px;
+  background-color: #212529;
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow-y: auto;          /* permite scroll vertical */
+  overflow-x: hidden;        /* evita scroll horizontal */
+
+  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;  /* Edge antiguo */
+
+  transition: transform 0.3s ease;
+  transform: translateX(-100%);
+  z-index: 1050;
+}
+
+/* Chrome, Edge, Safari */
+.sidebar::-webkit-scrollbar {
+  display: none;
+}
+
 
   .sidebar.active {
     transform: translateX(0);
@@ -131,7 +145,7 @@
   <div class="">
     <button id="sidebarToggle" class="sidebar-toggle">☰</button>
 
-    <img src="{% static 'gym/images/logoPag.png' %}" width="40" height="40"
+    <img src="{% static 'gym/images/LogoPag.png' %}" width="40" height="40"
          class="me-2 rounded-circle">
 
     <span class="text-white fs-5 fw-bold">
