@@ -374,17 +374,13 @@ function bindEditarEliminar() {
   // ELIMINAR
   document.querySelectorAll(".btn-eliminar").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
+            // Solo botones eliminar
+      if (!e.target.classList.contains("btn-eliminar")) return;
 
-      const resp = await fetch(`/actividades/eliminar/${id}/`, {
-        method: "POST",
-        headers: { "X-CSRFToken": csrftoken },
-      });
+      idAEliminar = e.target.dataset.id;
 
-      const result = await resp.json();
-      showAlert(result.message, result.success ? "success" : "danger");
-
-      if (result.success) actualizarActividades();
+      const modal = new bootstrap.Modal(document.getElementById("modalEliminar"));
+      modal.show();
     });
   });
 }
