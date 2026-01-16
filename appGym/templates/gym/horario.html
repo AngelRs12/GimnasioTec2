@@ -214,9 +214,13 @@ function filaCosto(data = {}) {
     </div>
 
     <div class="col">
-      <input class="form-control campo"
-             value="${data.costo || ""}">
-    </div>
+  <input type="number"
+         class="form-control campo"
+         step="0.01"
+         min="0"
+         value="${data.costo || ''}">
+</div>
+
 
     <div class="col-1 text-center">
       <button class="btn btn-outline-danger btn-sm"
@@ -228,7 +232,6 @@ function filaCosto(data = {}) {
 
   return div;
 }
-
 function eliminarFila(btn) {
   const fila = btn.closest(".fila-editable");
 
